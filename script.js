@@ -1,4 +1,4 @@
-// ✅ Cek Login
+// ✅ Login check
 function cekLogin() {
   const login = localStorage.getItem('admin_login');
   if (login !== 'true') {
@@ -6,37 +6,35 @@ function cekLogin() {
     window.location.href = 'login.html';
   }
 }
-
 function cekLoginLalu(callback) {
-  const login = localStorage.getItem('admin_login');
-  if (login === 'true') {
+  if (localStorage.getItem('admin_login') === 'true') {
     callback();
   } else {
     alert('Kamu belum login!');
     window.location.href = 'login.html';
   }
 }
-
 function logout() {
   localStorage.removeItem('admin_login');
   window.location.href = 'login.html';
 }
 
-// ✅ Load Struktur Soal dari Firebase
+// ✅ Load full Firebase structure
 function loadStruktur() {
-  db.ref().once('value', (snapshot) => {
-    const data = snapshot.val();
-    document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+  db.ref().once('value', snapshot => {
+    document.getElementById('output').textContent = JSON.stringify(snapshot.val(), null, 2);
   });
 }
 
-// ✅ Tambah Struktur Soal
+// ✅ Add structure
 function tambahStruktur() {
+  console.log("🚀 tambahStruktur called");
   const jenjang = document.getElementById('jenjang').value.trim();
   const mapel = document.getElementById('mapel').value.trim();
   const kelas = document.getElementById('kelas').value.trim();
   const semester = document.getElementById('semester').value.trim();
   const versi = document.getElementById('versi').value.trim();
+  console.log({ jenjang, mapel, kelas, semester, versi });
 
   if (!jenjang || !mapel || !kelas || !semester || !versi) {
     alert("Lengkapi semua field dulu!");
@@ -50,73 +48,46 @@ function tambahStruktur() {
   });
 }
 
-// ✅ Tambah Kategori Baru
+// ✅ Load kategori list
 function loadKategori() {
-  const dropdowns = [
-    document.getElementById('kategoriDeleteDropdown')
-  ];
-
-  dropdowns.forEach(drop => {
-    if (drop) drop.innerHTML = '';
-  });
-
+  const drop = document.getElementById('kategoriDeleteDropdown');
+  drop.innerHTML = '';
   db.ref().once('value')
     .then(snapshot => {
-      snapshot.forEach(childSnapshot => {
-        const kategori = childSnapshot.key;
-        dropdowns.forEach(drop => {
-          const option = document.createElement('option');
-          option.text = kategori;
-          option.value = kategori;
-          drop.appendChild(option);
-        });
+      snapshot.forEach(child => {
+        const opt = document.createElement('option');
+        opt.text = child.key;
+        opt.value = child.key;
+        drop.appendChild(opt);
       });
     })
-    .catch(error => {
-      alert("Gagal load kategori: " + error.message);
-    });
+    .catch(err => alert("Error loadKategori: " + err.message));
 }
 
+// ✅ Add category
 function tambahKategoriBaru() {
   const kategori = document.getElementById('kategoriBaru').value.trim();
-  if (kategori === '') {
-    alert('Kategori tidak boleh kosong!');
-    return;
-  }
-
+  if (!kategori) return alert('Nama kategori kosong');
   db.ref(kategori).once('value')
     .then(snapshot => {
-      if (snapshot.exists()) {
-        alert('Kategori sudah ada!');
-        return;
-      }
-      return db.ref(kategori).set("");
+      if (snapshot.exists()) alert('Kategori sudah ada!'); else return db.ref(kategori).set("");
     })
-    .then(() => {
+    .then(x => {
       alert('✅ Kategori berhasil ditambahkan!');
-      document.getElementById('kategoriBaru').value = '';
       loadKategori();
     })
-    .catch(err => {
-      alert("Terjadi error saat menambahkan kategori: " + err.message);
-      console.error(err);
-    });
+    .catch(err => alert("Error: " + err.message));
 }
 
-// ✅ Hapus Kategori
+// ✅ Remove category
 function hapusKategori() {
   const kategori = document.getElementById('kategoriDeleteDropdown').value;
-  const yakin = confirm(`Yakin ingin menghapus kategori "${kategori}"? Semua data akan hilang!`);
-
-  if (yakin) {
-    db.ref(kategori).remove()
-      .then(() => {
-        alert('🗑️ Kategori berhasil dihapus!');
-        loadKategori();
-        loadStruktur();
-      })
-      .catch(error => {
-        alert('Gagal menghapus kategori: ' + error.message);
-      });
-  }
+  if (!confirm(`Yakin hapus kategori "${kategori}"?`)) return;
+  db.ref(kategori).remove()
+    .then(() => {
+      alert('🗑️ Kategori dihapus');
+      loadKategori();
+      loadStruktur();
+    })
+    .catch(err => alert("Error hapusKategori: " + err.message));
 }
