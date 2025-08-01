@@ -229,11 +229,13 @@ function navigateToKelolaSoal() {
   const m = document.getElementById('mapelManage').value;
   const s = document.getElementById('semesterManage').value;
   const v = document.getElementById('versiManage').value;
+
   if (!j || !k || !m || !s || !v) return alert('Lengkapi semua dropdown terlebih dahulu!');
 
   const path = encodeURIComponent(`${j}/${k}/${m}/${s}/${v}`);
   window.location.href = `kelola-soal.html?path=${path}`;
 }
+
 document.addEventListener('DOMContentLoaded', () => {
   handleDropdownTriggers(); // biar semua chain dropdown jalan
   updateManageDropdowns();  // 🔥 ini biar manage versi keisi & tombol bisa jalan
