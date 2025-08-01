@@ -192,3 +192,45 @@ function tambahVersi() {
     })
     .catch(err => alert("❌ Gagal tambah versi: " + err.message));
 }
+function updateManageDropdowns() {
+  loadAllKategori(); // Pastikan ini sudah jalan dulu
+
+  document.getElementById('jenjangManage').addEventListener('change', () => {
+    const j = document.getElementById('jenjangManage').value;
+    loadChildDropdown(j, 'kelasManage');
+  });
+
+  document.getElementById('kelasManage').addEventListener('change', () => {
+    const j = document.getElementById('jenjangManage').value;
+    const k = document.getElementById('kelasManage').value;
+    loadChildDropdown(`${j}/${k}`, 'mapelManage');
+  });
+
+  document.getElementById('mapelManage').addEventListener('change', () => {
+    const j = document.getElementById('jenjangManage').value;
+    const k = document.getElementById('kelasManage').value;
+    const m = document.getElementById('mapelManage').value;
+    loadChildDropdown(`${j}/${k}/${m}`, 'semesterManage');
+  });
+
+  document.getElementById('semesterManage').addEventListener('change', () => {
+    const j = document.getElementById('jenjangManage').value;
+    const k = document.getElementById('kelasManage').value;
+    const m = document.getElementById('mapelManage').value;
+    const s = document.getElementById('semesterManage').value;
+    loadChildDropdown(`${j}/${k}/${m}/${s}`, 'versiManage');
+  });
+}
+
+function navigateToKelolaSoal() {
+  const j = document.getElementById('jenjangManage').value;
+  const k = document.getElementById('kelasManage').value;
+  const m = document.getElementById('mapelManage').value;
+  const s = document.getElementById('semesterManage').value;
+  const v = document.getElementById('versiManage').value;
+  if (!j || !k || !m || !s || !v) return alert('Lengkapi semua dropdown terlebih dahulu!');
+
+  const path = encodeURIComponent(`${j}/${k}/${m}/${s}/${v}`);
+  window.location.href = `kelola-soal.html?path=${path}`;
+}
+
