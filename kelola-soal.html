@@ -9,9 +9,8 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script src="firebase-config.js"></script>
   <script src="ocr-ai-handler.js" defer></script>
-  <script src="kelola-soal.js" defer></script>
 </head>
-<body onload="cekLogin(); initKelolaSoal();">
+<body onload="cekLogin();">
   <div class="header">
     <h2>🧾 Kelola Soal</h2>
     <button onclick="logout()">Logout</button>
@@ -19,20 +18,14 @@
 
   <div class="form">
     <h3>📥 Upload Gambar Soal (OCR)</h3>
-    <input type="file" accept="image/*" onchange="handleImageUpload(event)">
-    <div id="ocrPreview" style="margin-top:10px;"></div>
+    <input type="file" accept="image/*" id="uploadSoalGambar">
+    <img id="ocrPreview" style="margin-top:10px; max-width:100%; border:1px solid #ccc;">
   </div>
 
   <div class="form">
     <h3>✍️ Hasil OCR & AI Parsing</h3>
-    <textarea id="ocrResult" rows="10" style="width:100%; font-family:monospace;"></textarea>
-    <button onclick="simpanHasilOCR()">💾 Simpan ke Daftar Soal</button>
-  </div>
-
-  <div class="form">
-    <h3>📋 Daftar Soal Tersimpan</h3>
     <div id="daftarSoal" class="scrollable-box"></div>
-    <button onclick="simpanSemuaSoalKeFirebase()">🚀 Simpan Semua ke Firebase</button>
+    <button id="btnSimpanSoal">🚀 Simpan Semua ke Firebase</button>
   </div>
 </body>
 </html>
