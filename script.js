@@ -234,3 +234,8 @@ function navigateToKelolaSoal() {
   const path = encodeURIComponent(`${j}/${k}/${m}/${s}/${v}`);
   window.location.href = `kelola-soal.html?path=${path}`;
 }
+document.addEventListener('DOMContentLoaded', () => {
+  handleDropdownTriggers(); // biar semua chain dropdown jalan
+  updateManageDropdowns();  // 🔥 ini biar manage versi keisi & tombol bisa jalan
+});
+
