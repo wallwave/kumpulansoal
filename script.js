@@ -74,14 +74,12 @@ function loadChildDropdown(path, targetId) {
       dropdown.appendChild(option);
     });
 
-    // 🔁 Trigger turunan
     dropdown.dispatchEvent(new Event('change'));
   });
 }
 
 // ✅ Event Listener Dropdown Berantai
 // 🔗 Di-load saat DOM ready
-
 document.addEventListener('DOMContentLoaded', () => {
   // === Untuk Tambah Mapel ===
   document.getElementById('jenjangDropdown2')?.addEventListener('change', () => {
@@ -94,7 +92,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const j = document.getElementById('jenjangDropdown3').value;
     loadChildDropdown(j, 'kelasDropdown2');
   });
-
   document.getElementById('kelasDropdown2')?.addEventListener('change', () => {
     const j = document.getElementById('jenjangDropdown3').value;
     const k = document.getElementById('kelasDropdown2').value;
@@ -106,13 +103,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const j = document.getElementById('jenjangDropdown4').value;
     loadChildDropdown(j, 'kelasDropdown3');
   });
-
   document.getElementById('kelasDropdown3')?.addEventListener('change', () => {
     const j = document.getElementById('jenjangDropdown4').value;
     const k = document.getElementById('kelasDropdown3').value;
     loadChildDropdown(`${j}/${k}`, 'mapelDropdown2');
   });
-
   document.getElementById('mapelDropdown2')?.addEventListener('change', () => {
     const j = document.getElementById('jenjangDropdown4').value;
     const k = document.getElementById('kelasDropdown3').value;
@@ -125,20 +120,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const j = document.getElementById('jenjangManage').value;
     loadChildDropdown(j, 'kelasManage');
   });
-
   document.getElementById('kelasManage')?.addEventListener('change', () => {
     const j = document.getElementById('jenjangManage').value;
     const k = document.getElementById('kelasManage').value;
     loadChildDropdown(`${j}/${k}`, 'mapelManage');
   });
-
   document.getElementById('mapelManage')?.addEventListener('change', () => {
     const j = document.getElementById('jenjangManage').value;
     const k = document.getElementById('kelasManage').value;
     const m = document.getElementById('mapelManage').value;
     loadChildDropdown(`${j}/${k}/${m}`, 'semesterManage');
   });
-
   document.getElementById('semesterManage')?.addEventListener('change', () => {
     const j = document.getElementById('jenjangManage').value;
     const k = document.getElementById('kelasManage').value;
@@ -235,4 +227,25 @@ function navigateToKelolaSoal() {
 
   const path = encodeURIComponent(`${j}/${k}/${m}/${s}/${v}`);
   window.location.href = `kelola-soal.html?path=${path}`;
-}
+} 
+
+// ✅ Style Adjustment (kotak OCR & daftar soal)
+document.addEventListener('DOMContentLoaded', () => {
+  const ocrBox = document.getElementById('ocrResultBox');
+  if (ocrBox) {
+    ocrBox.style.minHeight = '200px';
+    ocrBox.style.padding = '12px';
+    ocrBox.style.fontSize = '16px';
+    ocrBox.style.overflowY = 'auto';
+  }
+
+  const soalList = document.querySelectorAll('.soal-item');
+  soalList.forEach(item => {
+    item.style.backgroundColor = '#f8f9fa';
+    item.style.border = '1px solid #ddd';
+    item.style.marginBottom = '10px';
+    item.style.padding = '10px';
+    item.style.borderRadius = '8px';
+    item.style.color = '#212529';
+  });
+});
