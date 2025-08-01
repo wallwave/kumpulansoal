@@ -18,14 +18,15 @@
 
   <div class="form">
     <h3>📥 Upload Gambar Soal (OCR)</h3>
-    <input type="file" accept="image/*" onchange="handleImageUpload(event)">
+    <input type="file" accept="image/*" id="uploadSoalGambar">
     <img id="ocrPreview" style="margin-top:10px; max-width:100%;">
+    <button onclick="mulaiScanOCR()">🔍 Mulai Scan OCR</button>
   </div>
 
   <div class="form">
     <h3>📄 Hasil OCR Mentah</h3>
-    <textarea id="ocrResult" rows="10" style="width:100%; font-family:monospace;"></textarea>
-    <button onclick="parseOCRToEditor()">🔍 Parse jadi soal</button>
+    <textarea id="ocrResult" rows="10" style="width:100%; font-family:monospace;" placeholder="Teks hasil scan akan muncul di sini..."></textarea>
+    <button onclick="parseOCRToEditor()">✍️ Parse ke Editor JSON</button>
   </div>
 
   <div class="form">
