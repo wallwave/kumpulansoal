@@ -28,13 +28,11 @@ function loadStruktur() {
 
 // ✅ Add structure
 function tambahStruktur() {
-  console.log("🚀 tambahStruktur called");
   const jenjang = document.getElementById('jenjang').value.trim();
   const mapel = document.getElementById('mapel').value.trim();
   const kelas = document.getElementById('kelas').value.trim();
   const semester = document.getElementById('semester').value.trim();
   const versi = document.getElementById('versi').value.trim();
-  console.log({ jenjang, mapel, kelas, semester, versi });
 
   if (!jenjang || !mapel || !kelas || !semester || !versi) {
     alert("Lengkapi semua field dulu!");
@@ -42,11 +40,19 @@ function tambahStruktur() {
   }
 
   const path = `${jenjang}/${mapel}/${kelas}/${semester}/${versi}`;
-  db.ref(path).set({}).then(() => {
-    alert("✅ Struktur berhasil ditambahkan!");
-    loadStruktur();
-  });
+
+  db.ref(path).set({})
+    .then(() => {
+      console.log(`✅ Struktur ${path} berhasil ditambahkan`);
+      alert("✅ Struktur berhasil ditambahkan!");
+      loadStruktur();
+    })
+    .catch((error) => {
+      console.error("❌ Gagal menambahkan struktur:", error);
+      alert("❌ Gagal menambahkan struktur: " + error.message);
+    });
 }
+
 
 // ✅ Load kategori list
 function loadKategori() {
