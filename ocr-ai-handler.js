@@ -1,87 +1,83 @@
-// 🔐 Cek login dulu
 function cekLogin() {
-  const login = localStorage.getItem("admin_login");
-  if (login !== "true") {
-    alert("Kamu belum login!");
-    window.location.href = "login.html";
+  const login = localStorage.getItem('admin_login');
+  if (login !== 'true') {
+    alert('Kamu belum login!');
+    window.location.href = 'login.html';
   }
 }
 
-// 🔍 Ambil path dari URL
+function logout() {
+  localStorage.removeItem('admin_login');
+  window.location.href = 'login.html';
+}
+
 function getPath() {
   const params = new URLSearchParams(window.location.search);
-  return decodeURIComponent(params.get("path") || "");
+  return decodeURIComponent(params.get('path') || '');
 }
 
-// 📦 Upload gambar soal → kirim ke OCR.space
-async function processImageAI(imageDataUrl) {
-  const formData = new FormData();
-  formData.append("base64Image", imageDataUrl);
-  formData.append("language", "ind");
-  formData.append("isOverlayRequired", "false");
-
-  const res = await fetch("https://api.ocr.space/parse/image", {
-    method: "POST",
-    headers: {
-      apikey: "helloworld" // Gratis & aman
-    },
-    body: formData,
-  });
-
-  const json = await res.json();
-  const text = json.ParsedResults?.[0]?.ParsedText || "";
-
-  console.log("📄 OCR Text Result:\n", text);
-
-  return parseSoalFromText(text);
-}
-
-// 🧠 Parser teks OCR jadi array soal
-function parseSoalFromText(text) {
-  const soalList = [];
-  const soalRaw = text.split(/Soal\s*\d+/i).filter(s => s.trim());
-
-  soalRaw.forEach((item, index) => {
-    const lines = item.trim().split('\n').filter(l => l.trim());
-    if (lines.length < 5) return;
-
-    const question = lines[0];
-    const options = lines.slice(1, 5);
-    let correct = (lines[5] || "").trim().toLowerCase();
-
-    if (!["a", "b", "c", "d"].includes(correct)) correct = "a";
-
-    soalList.push({
-      question,
-      a: options[0],
-      b: options[1],
-      c: options[2],
-      d: options[3],
-      correct,
-    });
-  });
-
-  return soalList;
-}
-
-// 📤 Upload gambar → tampilkan preview & hasil AI
 function handleImageUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
-
   const reader = new FileReader();
-  reader.onload = async (e) => {
+  reader.onload = (e) => {
     const imageDataUrl = e.target.result;
     document.getElementById("ocrPreview").src = imageDataUrl;
 
-    const hasil = await processImageAI(imageDataUrl);
-    renderAIResult(hasil);
+    // Pakai OCR.space API publik gratis
+    fetch("https://api.ocr.space/parse/image", {
+      method: "POST",
+      headers: {
+        apikey: "helloworld", // key gratis demo
+      },
+      body: new URLSearchParams({
+        base64Image: imageDataUrl,
+        language: "ind",
+        isOverlayRequired: false
+      }),
+    })
+      .then(res => res.json())
+      .then(res => {
+        const hasil = res.ParsedResults?.[0]?.ParsedText || "";
+        document.getElementById("ocrResult").value = hasil;
+      })
+      .catch(err => alert("❌ Gagal OCR: " + err.message));
   };
   reader.readAsDataURL(file);
 }
 
-// 🧾 Render soal hasil parsing
-function renderAIResult(soalList) {
+function parseOCRToEditor() {
+  const raw = document.getElementById("ocrResult").value;
+  const lines = raw.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+
+  const soalList = [];
+  let current = null;
+  let options = [];
+
+  lines.forEach((line) => {
+    if (/^Soal\s*\d+/i.test(line)) {
+      if (current && options.length === 4) {
+        soalList.push({ ...current });
+      }
+      current = { question: "", a: "", b: "", c: "", d: "", correct: "a" };
+      options = [];
+    } else if (!current.question) {
+      current.question = line;
+    } else if (options.length < 4) {
+      const index = ["a", "b", "c", "d"][options.length];
+      current[index] = line;
+      options.push(line);
+    } else if (/^[ABCDabcd]$/.test(line)) {
+      current.correct = line.toLowerCase();
+    }
+  });
+
+  if (current && options.length === 4) soalList.push(current);
+
+  renderSoalEditor(soalList);
+}
+
+function renderSoalEditor(soalList) {
   const container = document.getElementById("daftarSoal");
   container.innerHTML = "";
 
@@ -111,9 +107,8 @@ function renderAIResult(soalList) {
   });
 }
 
-// 💾 Simpan soal ke Firebase
-function simpanKeFirebase() {
-  const path = getPath();
+function simpanSemuaSoalKeFirebase() {
+  const path = getPath(); // contoh: SD/kelas_1/IPA/semester_1/versi_1
   const soalEls = document.querySelectorAll(".soal-item");
   const soalObj = {};
 
@@ -130,25 +125,16 @@ function simpanKeFirebase() {
 
   db.ref(`${path}/soal`).set(soalObj)
     .then(() => alert("✅ Soal berhasil disimpan!"))
-    .catch((err) => alert("❌ Gagal simpan soal: " + err.message));
+    .catch(err => alert("❌ Gagal simpan soal: " + err.message));
 }
 
-// 🔁 Load soal tersimpan dari Firebase
 function tampilkanSoalTersimpan() {
   const path = getPath();
   db.ref(`${path}/soal`).once("value").then(snapshot => {
     const data = snapshot.val();
     if (data) {
-      const arr = Object.keys(data).map(k => data[k]);
-      renderAIResult(arr);
+      const arr = Object.values(data);
+      renderSoalEditor(arr);
     }
   });
 }
-
-// 🚀 Inisialisasi saat halaman dimuat
-document.addEventListener("DOMContentLoaded", () => {
-  cekLogin();
-  tampilkanSoalTersimpan();
-  document.getElementById("uploadSoalGambar").addEventListener("change", handleImageUpload);
-  document.getElementById("btnSimpanSoal").addEventListener("click", simpanKeFirebase);
-});
