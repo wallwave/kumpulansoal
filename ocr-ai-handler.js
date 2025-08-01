@@ -70,45 +70,45 @@ function parseOCRToEditor() {
   const soalList = [];
 
   let current = null;
-  let opsiIndex = 0;
-  let nomor = 1;
+  let nomorSoalRegex = /^\d+[\).]{1,2}/;
+  let opsiRegex = /^[a-dA-D][\.\)\s]+/;
+  let opsiBuffer = [];
 
-  const abcd = ['a', 'b', 'c', 'd'];
-
-  lines.forEach((line, idx) => {
-    // Deteksi nomor soal
-    if (/^\d+[\).]/.test(line) || /^Soal\s*\d+/i.test(line)) {
+  lines.forEach(line => {
+    if (nomorSoalRegex.test(line)) {
       if (current) soalList.push(current);
       current = { question: "", a: "", b: "", c: "", d: "", correct: "a" };
-      opsiIndex = 0;
-      current.question = line.replace(/^\d+[\).]\s*/, "").replace(/^Soal\s*\d+[:.)]?\s*/i, "");
+      current.question = line.replace(nomorSoalRegex, "").trim();
+      opsiBuffer = [];
     }
-    // Deteksi opsi
-    else if (/^[a-dA-D][).]/.test(line)) {
-      const opt = abcd[opsiIndex];
-      current[opt] = line.replace(/^[a-dA-D][).]\s*/, "");
-      opsiIndex++;
+    else if (opsiRegex.test(line)) {
+      const huruf = line.charAt(0).toLowerCase();
+      const isi = line.slice(2).trim();
+      if (["a", "b", "c", "d"].includes(huruf)) {
+        current[huruf] = isi;
+      }
     }
-    // Deteksi jawaban benar (misal cuma satu huruf)
+    else if (line.includes("€") || line.includes(" - ") || line.includes(".")) {
+      // Fallback: split otomatis opsi dalam satu baris
+      const parts = line.split(/[€•\-]/).map(s => s.trim()).filter(Boolean);
+      ["a", "b", "c", "d"].forEach((huruf, idx) => {
+        if (parts[idx]) current[huruf] = parts[idx];
+      });
+    }
     else if (/^[a-dA-D]$/.test(line)) {
       current.correct = line.toLowerCase();
-    }
-    // Tambahan fallback (kalau OCR ga perfect)
-    else if (current && current.question && opsiIndex < 4) {
-      const opt = abcd[opsiIndex];
-      current[opt] = line;
-      opsiIndex++;
     }
   });
 
   if (current) soalList.push(current);
 
-  // JSON Preview
+  // Tampilkan hasil parsing ke textarea JSON dan daftar editor
   const jsonArea = document.getElementById("jsonResult");
   if (jsonArea) jsonArea.value = JSON.stringify(soalList, null, 2);
 
   renderSoalEditor(soalList);
 }
+
 
 
 
