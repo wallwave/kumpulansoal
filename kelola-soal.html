@@ -8,31 +8,37 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script src="firebase-config.js"></script>
-  <script defer src="kelola-soal.js"></script>
+  <script src="ocr-ai-handler.js" defer></script>
+  <script src="kelola-soal.js" defer></script>
 </head>
-<body onload="cekLogin(); tampilkanSoalTersimpan();">
+<body onload="cekLogin(); initKelolaSoal();">
+
   <div class="header">
     <h2>🧾 Kelola Soal</h2>
     <button onclick="logout()">Logout</button>
   </div>
 
+  <!-- Upload Gambar -->
   <div class="form">
-    <h3>📥 Upload Gambar Soal (OCR)</h3>
-    <input type="file" accept="image/*" id="uploadSoalGambar">
-    <img id="ocrPreview" style="margin-top:10px; max-width:100%;">
-    <button onclick="mulaiScanOCR()">🔍 Mulai Scan OCR</button>
+    <h3>📥 Upload Gambar Soal</h3>
+    <input type="file" id="uploadSoalGambar" accept="image/*">
+    <img id="ocrPreview" src="" alt="Preview" style="max-width: 100%; margin-top: 10px;" />
+    <button id="btnMulaiScan">🔍 Mulai Scan OCR</button>
   </div>
 
+  <!-- Hasil OCR -->
   <div class="form">
-    <h3>📄 Hasil OCR Mentah</h3>
-    <textarea id="ocrResult" rows="10" style="width:100%; font-family:monospace;" placeholder="Teks hasil scan akan muncul di sini..."></textarea>
-    <button onclick="parseOCRToEditor()">✍️ Parse ke Editor JSON</button>
+    <h3>✍️ Hasil Scan (Teks Mentah)</h3>
+    <textarea id="ocrResult" rows="10" style="width:100%; font-family:monospace;"></textarea>
+    <button id="btnParseOCR">⚙️ Parse ke Format JSON Soal</button>
   </div>
 
+  <!-- Editor Soal -->
   <div class="form">
-    <h3>✍️ Editor Soal</h3>
+    <h3>📋 Daftar Soal Editor (Edit Manual Jika Perlu)</h3>
     <div id="daftarSoal" class="scrollable-box"></div>
-    <button onclick="simpanSemuaSoalKeFirebase()">🚀 Simpan Semua ke Firebase</button>
+    <button id="btnSimpanSoal">🚀 Simpan Semua ke Firebase</button>
   </div>
+
 </body>
 </html>
