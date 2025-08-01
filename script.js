@@ -1,4 +1,4 @@
-// ✅ Cek Login
+// ✅ Inisialisasi Login Cek
 function cekLogin() {
   const login = localStorage.getItem('admin_login');
   if (login !== 'true') {
@@ -22,7 +22,7 @@ function logout() {
   window.location.href = 'login.html';
 }
 
-// ✅ Load Semua Struktur
+// ✅ Load Semua Struktur & Sinkronisasi Dropdown
 function loadAllKategori() {
   db.ref().once('value').then(snapshot => {
     const data = snapshot.val();
@@ -32,83 +32,91 @@ function loadAllKategori() {
     updateDropdown('jenjangDropdown2', data);
     updateDropdown('jenjangDropdown3', data);
     updateDropdown('jenjangDropdown4', data);
+
+    // Trigger dropdown dependensi
+    handleDropdownTriggers();
   });
 }
 
-// 🔁 Helper isi dropdown
+// 🔁 Helper isi dropdown jenjang
 function updateDropdown(dropdownId, data) {
   const dropdown = document.getElementById(dropdownId);
   dropdown.innerHTML = '';
-  if (!dropdown || !data) return;
 
-  Object.keys(data).forEach(key => {
-    const option = document.createElement('option');
-    option.value = key;
-    option.text = key;
-    dropdown.appendChild(option);
-  });
-
-  // Trigger untuk dropdown dependent
-  if (dropdownId === 'jenjangDropdown2') {
-    dropdown.onchange = () => loadKelasDropdown('kelasDropdown', dropdown.value);
-  }
-  if (dropdownId === 'jenjangDropdown3') {
-    dropdown.onchange = () => loadKelasDropdown('kelasDropdown2', dropdown.value);
-  }
-  if (dropdownId === 'jenjangDropdown4') {
-    dropdown.onchange = () => loadKelasDropdown('kelasDropdown3', dropdown.value);
+  if (dropdown && data) {
+    Object.keys(data).forEach(jenjang => {
+      const option = document.createElement('option');
+      option.value = jenjang;
+      option.text = jenjang;
+      dropdown.appendChild(option);
+    });
   }
 }
 
-// 🔁 Load Kelas berdasarkan Jenjang
-function loadKelasDropdown(kelasDropdownId, jenjang) {
-  db.ref(jenjang).once('value').then(snapshot => {
+// 🔁 Helper isi dropdown kelas/mapel/semester
+function loadChildDropdown(parentPath, targetId) {
+  const dropdown = document.getElementById(targetId);
+  dropdown.innerHTML = '';
+
+  db.ref(parentPath).once('value').then(snapshot => {
     const data = snapshot.val();
-    updateDropdown(kelasDropdownId, data);
+    if (!data) return;
 
-    if (kelasDropdownId === 'kelasDropdown') {
-      document.getElementById(kelasDropdownId).onchange = () => {
-        const kelas = document.getElementById(kelasDropdownId).value;
-        loadMapelDropdown('mapelDropdown', jenjang, kelas);
-      };
-    }
-
-    if (kelasDropdownId === 'kelasDropdown2') {
-      document.getElementById(kelasDropdownId).onchange = () => {
-        const kelas = document.getElementById(kelasDropdownId).value;
-        loadMapelDropdown('mapelDropdown', jenjang, kelas);
-      };
-    }
-
-    if (kelasDropdownId === 'kelasDropdown3') {
-      document.getElementById(kelasDropdownId).onchange = () => {
-        const kelas = document.getElementById(kelasDropdownId).value;
-        loadMapelDropdown('mapelDropdown2', jenjang, kelas);
-      };
-    }
+    Object.keys(data).forEach(child => {
+      const option = document.createElement('option');
+      option.value = child;
+      option.text = child;
+      dropdown.appendChild(option);
+    });
   });
 }
 
-// 🔁 Load Mapel berdasarkan Kelas
-function loadMapelDropdown(mapelDropdownId, jenjang, kelas) {
-  db.ref(`${jenjang}/${kelas}`).once('value').then(snapshot => {
-    const data = snapshot.val();
-    updateDropdown(mapelDropdownId, data);
+// 🎯 Handle Chain Dropdown Listener
+function handleDropdownTriggers() {
+  // Jenjang ➜ Kelas (Tambah Mapel)
+  document.getElementById('jenjangDropdown2').addEventListener('change', () => {
+    const jenjang = document.getElementById('jenjangDropdown2').value;
+    loadChildDropdown(jenjang, 'kelasDropdown');
+  });
 
-    if (mapelDropdownId === 'mapelDropdown2') {
-      document.getElementById(mapelDropdownId).onchange = () => {
-        const mapel = document.getElementById(mapelDropdownId).value;
-        loadSemesterDropdown('semesterDropdown', jenjang, kelas, mapel);
-      };
+  // Jenjang ➜ Kelas (Tambah Semester)
+  document.getElementById('jenjangDropdown3').addEventListener('change', () => {
+    const jenjang = document.getElementById('jenjangDropdown3').value;
+    loadChildDropdown(jenjang, 'kelasDropdown2');
+  });
+
+  // Jenjang & Kelas ➜ Mapel (Tambah Semester)
+  document.getElementById('kelasDropdown2').addEventListener('change', () => {
+    const jenjang = document.getElementById('jenjangDropdown3').value;
+    const kelas = document.getElementById('kelasDropdown2').value;
+    if (jenjang && kelas) {
+      loadChildDropdown(`${jenjang}/${kelas}`, 'mapelDropdown');
     }
   });
-}
 
-// 🔁 Load Semester berdasarkan Mapel
-function loadSemesterDropdown(semesterDropdownId, jenjang, kelas, mapel) {
-  db.ref(`${jenjang}/${kelas}/${mapel}`).once('value').then(snapshot => {
-    const data = snapshot.val();
-    updateDropdown(semesterDropdownId, data);
+  // Jenjang ➜ Kelas (Tambah Versi)
+  document.getElementById('jenjangDropdown4').addEventListener('change', () => {
+    const jenjang = document.getElementById('jenjangDropdown4').value;
+    loadChildDropdown(jenjang, 'kelasDropdown3');
+  });
+
+  // Kelas ➜ Mapel (Tambah Versi)
+  document.getElementById('kelasDropdown3').addEventListener('change', () => {
+    const jenjang = document.getElementById('jenjangDropdown4').value;
+    const kelas = document.getElementById('kelasDropdown3').value;
+    if (jenjang && kelas) {
+      loadChildDropdown(`${jenjang}/${kelas}`, 'mapelDropdown2');
+    }
+  });
+
+  // Mapel ➜ Semester (Tambah Versi)
+  document.getElementById('mapelDropdown2').addEventListener('change', () => {
+    const jenjang = document.getElementById('jenjangDropdown4').value;
+    const kelas = document.getElementById('kelasDropdown3').value;
+    const mapel = document.getElementById('mapelDropdown2').value;
+    if (jenjang && kelas && mapel) {
+      loadChildDropdown(`${jenjang}/${kelas}/${mapel}`, 'semesterDropdown');
+    }
   });
 }
 
