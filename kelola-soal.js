@@ -15,6 +15,8 @@ function tampilkanSoalTersimpan() {
   db.ref(`${path}/soal`).once("value").then((snapshot) => {
     const data = snapshot.val();
     if (data) {
+      const jsonArea = document.getElementById("jsonResult");
+      if (jsonArea) jsonArea.value = JSON.stringify(data, null, 2);
       const arr = Object.keys(data).map((k) => data[k]);
       renderSoalEditor(arr);
     }
@@ -40,12 +42,14 @@ function simpanSemuaSoalKeFirebase() {
   db.ref(`${path}/soal`).set(soalObj)
     .then(() => alert("✅ Soal berhasil disimpan ke Firebase!"))
     .catch((err) => alert("❌ Gagal simpan soal: " + err.message));
+
+  const jsonArea = document.getElementById("jsonResult");
+  if (jsonArea) jsonArea.value = JSON.stringify(soalObj, null, 2);
 }
 
 function initKelolaSoal() {
   tampilkanSoalTersimpan();
-  document.getElementById("btnMulaiScan").addEventListener("click", mulaiScanOCR);
-  document.getElementById("btnParseOCR").addEventListener("click", parseOCRToEditor);
-  document.getElementById("btnSimpanSoal").addEventListener("click", simpanSemuaSoalKeFirebase);
+  document.getElementById("btnMulaiScan")?.addEventListener("click", mulaiScanOCR);
+  document.getElementById("btnParseOCR")?.addEventListener("click", parseOCRToEditor);
+  document.getElementById("btnSimpanSoal")?.addEventListener("click", simpanSemuaSoalKeFirebase);
 }
-
