@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>📚 Admin Panel Kumpulan Soal</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="script.js" defer></script>
+</head>
+<body onload="cekLogin(); loadKategori();">
+  <div class="header">
+    <h2>🧠 Admin Panel Kumpulan Soal</h2>
+    <button onclick="logout()">Logout</button>
+  </div>
+
+  <div class="form">
+    <h3>Tambah Struktur Soal</h3>
+    <input type="text" id="jenjang" placeholder="Jenjang (contoh: SD)" />
+    <input type="text" id="mapel" placeholder="Mata Pelajaran (contoh: IPA)" />
+    <input type="text" id="kelas" placeholder="Kelas (contoh: kelas_1)" />
+    <input type="text" id="semester" placeholder="Semester (contoh: semester_1)" />
+    <input type="text" id="versi" placeholder="Versi (contoh: versi_1)" />
+    <button onclick="cekLoginLalu(tambahStruktur)">➕ Tambah Struktur</button>
+  </div>
+
+  <div class="form">
+    <h3>Tambah Kategori</h3>
+    <input type="text" id="kategoriBaru" placeholder="Nama Kategori Baru" />
+    <button onclick="cekLoginLalu(tambahKategoriBaru)">Tambah Kategori</button>
+  </div>
+
+  <div class="form">
+    <h3>Hapus Kategori</h3>
+    <select id="kategoriDeleteDropdown"></select>
+    <button onclick="cekLoginLalu(hapusKategori)">Hapus Kategori</button>
+  </div>
+
+  <div class="form">
+    <h3>Struktur Tersimpan</h3>
+    <pre id="output" style="background:#eee;padding:10px;border-radius:5px;"></pre>
+  </div>
+</body>
+</html>
