@@ -1,3 +1,4 @@
+// ✅ Login Check
 function cekLogin() {
   const login = localStorage.getItem('admin_login');
   if (login !== 'true') {
@@ -25,73 +26,110 @@ function loadAllKategori() {
   db.ref().once('value', (snapshot) => {
     const data = snapshot.val();
     document.getElementById('output').textContent = JSON.stringify(data, null, 2);
-
-    const jenjangDropdown = document.getElementById('jenjangDropdown');
-    const jenjangDropdown2 = document.getElementById('jenjangDropdown2');
-    jenjangDropdown.innerHTML = '';
-    jenjangDropdown2.innerHTML = '';
-
-    for (const jenjang in data) {
-      const opt1 = document.createElement('option');
-      opt1.value = jenjang;
-      opt1.textContent = jenjang;
-      jenjangDropdown.appendChild(opt1);
-
-      const opt2 = document.createElement('option');
-      opt2.value = jenjang;
-      opt2.textContent = jenjang;
-      jenjangDropdown2.appendChild(opt2);
-    }
+    updateDropdowns(data);
   });
 }
 
 function tambahJenjang() {
   const jenjang = document.getElementById('jenjangInput').value.trim();
-  if (!jenjang) return alert('Masukkan jenjang!');
-  db.ref(jenjang).set("init").then(() => {
-    alert('✅ Jenjang ditambahkan!');
-    document.getElementById('jenjangInput').value = '';
-    loadAllKategori();
-  });
-}
-
-function tambahMapel() {
-  const jenjang = document.getElementById('jenjangDropdown').value;
-  const mapel = document.getElementById('mapelInput').value.trim();
-  if (!mapel) return alert('Masukkan mapel!');
-  db.ref(`${jenjang}/${mapel}`).set("init").then(() => {
-    alert('✅ Mapel ditambahkan!');
-    document.getElementById('mapelInput').value = '';
-    loadAllKategori();
-  });
+  if (!jenjang) return alert('Isi jenjang dulu!');
+  db.ref(jenjang).set({}).then(loadAllKategori);
 }
 
 function tambahKelas() {
-  const jenjang = document.getElementById('jenjangDropdown2').value;
-  const mapel = document.getElementById('mapelDropdown').value;
+  const jenjang = document.getElementById('jenjangDropdown').value;
   const kelas = document.getElementById('kelasInput').value.trim();
-  if (!kelas) return alert('Masukkan kelas!');
-  db.ref(`${jenjang}/${mapel}/${kelas}`).set("init").then(() => {
-    alert('✅ Kelas ditambahkan!');
-    document.getElementById('kelasInput').value = '';
-    loadAllKategori();
+  if (!jenjang || !kelas) return alert('Isi semua field!');
+  db.ref(`${jenjang}/${kelas}`).set({}).then(loadAllKategori);
+}
+
+function tambahMapel() {
+  const jenjang = document.getElementById('jenjangDropdown2').value;
+  const kelas = document.getElementById('kelasDropdown').value;
+  const mapel = document.getElementById('mapelInput').value.trim();
+  if (!jenjang || !kelas || !mapel) return alert('Isi semua field!');
+  db.ref(`${jenjang}/${kelas}/${mapel}`).set({}).then(loadAllKategori);
+}
+
+function tambahSemester() {
+  const jenjang = document.getElementById('jenjangDropdown3').value;
+  const kelas = document.getElementById('kelasDropdown2').value;
+  const mapel = document.getElementById('mapelDropdown').value;
+  const semester = document.getElementById('semesterInput').value.trim();
+  if (!jenjang || !kelas || !mapel || !semester) return alert('Isi semua field!');
+  db.ref(`${jenjang}/${kelas}/${mapel}/${semester}`).set({}).then(loadAllKategori);
+}
+
+function tambahVersi() {
+  const jenjang = document.getElementById('jenjangDropdown4').value;
+  const kelas = document.getElementById('kelasDropdown3').value;
+  const mapel = document.getElementById('mapelDropdown2').value;
+  const semester = document.getElementById('semesterDropdown').value;
+  const versi = document.getElementById('versiInput').value.trim();
+  if (!jenjang || !kelas || !mapel || !semester || !versi) return alert('Isi semua field!');
+  db.ref(`${jenjang}/${kelas}/${mapel}/${semester}/${versi}`).set({}).then(loadAllKategori);
+}
+
+function updateDropdowns(data) {
+  const jenjangs = Object.keys(data || {});
+  const kelasByJenjang = {};
+  const mapelByKelas = {};
+  const semesterByMapel = {};
+
+  // Jenjang
+  const jenjangSelects = [
+    'jenjangDropdown', 'jenjangDropdown2', 'jenjangDropdown3', 'jenjangDropdown4'
+  ];
+  jenjangSelects.forEach(id => fillDropdown(id, jenjangs));
+
+  // Kelas
+  jenjangs.forEach(j => {
+    const kelas = Object.keys(data[j] || {});
+    kelasByJenjang[j] = kelas;
+  });
+  const kelasSelects = ['kelasDropdown', 'kelasDropdown2', 'kelasDropdown3'];
+  kelasSelects.forEach(id => {
+    const j = document.getElementById(id.replace('kelas', 'jenjang')).value;
+    fillDropdown(id, kelasByJenjang[j] || []);
+  });
+
+  // Mapel
+  for (const j in data) {
+    for (const k in data[j]) {
+      mapelByKelas[`${j}/${k}`] = Object.keys(data[j][k] || {});
+    }
+  }
+  const mapelSelects = ['mapelDropdown', 'mapelDropdown2'];
+  mapelSelects.forEach(id => {
+    const j = document.getElementById(id.replace('mapel', 'jenjang')).value;
+    const k = document.getElementById(id.replace('mapel', 'kelas')).value;
+    fillDropdown(id, mapelByKelas[`${j}/${k}`] || []);
+  });
+
+  // Semester
+  for (const j in data) {
+    for (const k in data[j]) {
+      for (const m in data[j][k]) {
+        semesterByMapel[`${j}/${k}/${m}`] = Object.keys(data[j][k][m] || {});
+      }
+    }
+  }
+  fillDropdown('semesterDropdown', []);
+}
+
+function fillDropdown(id, options) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = '';
+  options.forEach(opt => {
+    const o = document.createElement('option');
+    o.value = opt;
+    o.textContent = opt;
+    el.appendChild(o);
   });
 }
 
-// Populate mapelDropdown saat jenjangDropdown2 berubah
-window.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('jenjangDropdown2').addEventListener('change', function () {
-    const jenjang = this.value;
-    db.ref(jenjang).once('value', (snapshot) => {
-      const data = snapshot.val();
-      const mapelDropdown = document.getElementById('mapelDropdown');
-      mapelDropdown.innerHTML = '';
-      for (const mapel in data) {
-        const opt = document.createElement('option');
-        opt.value = mapel;
-        opt.textContent = mapel;
-        mapelDropdown.appendChild(opt);
-      }
-    });
-  });
-});
+window.onload = () => {
+  cekLogin();
+  loadAllKategori();
+};
