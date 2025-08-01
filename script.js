@@ -6,6 +6,7 @@ function cekLogin() {
     window.location.href = 'login.html';
   }
 }
+
 function cekLoginLalu(callback) {
   const login = localStorage.getItem('admin_login');
   if (login === 'true') {
@@ -15,6 +16,7 @@ function cekLoginLalu(callback) {
     window.location.href = 'login.html';
   }
 }
+
 function logout() {
   localStorage.removeItem('admin_login');
   window.location.href = 'login.html';
@@ -26,18 +28,19 @@ function loadAllKategori() {
     const data = snapshot.val();
     document.getElementById('output').textContent = JSON.stringify(data, null, 2);
 
-    updateDropdown('jenjangDropdown', data);
-    updateDropdown('jenjangDropdown2', data);
-    updateDropdown('jenjangDropdown3', data);
-    updateDropdown('jenjangDropdown4', data);
+    updateDropdown('jenjangDropdown', data);      // ➕ untuk tambah kelas
+    updateDropdown('jenjangDropdown2', data);     // ➕ untuk tambah mapel
+    updateDropdown('jenjangDropdown3', data);     // ➕ untuk tambah semester
+    updateDropdown('jenjangDropdown4', data);     // ➕ untuk tambah versi
+    updateDropdown('jenjangManage', data);        // ➕ untuk kelola soal
 
-    // force trigger biar turunannya ikutan update
+    // ⏱️ Trigger event agar dropdown berantai jalan
     triggerAllDropdownEvents();
   });
 }
 
 function triggerAllDropdownEvents() {
-  ['jenjangDropdown2', 'jenjangDropdown3', 'jenjangDropdown4'].forEach(id => {
+  ['jenjangDropdown2', 'jenjangDropdown3', 'jenjangDropdown4', 'jenjangManage'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.dispatchEvent(new Event('change'));
   });
@@ -71,49 +74,81 @@ function loadChildDropdown(path, targetId) {
       dropdown.appendChild(option);
     });
 
-    // trigger turunannya
+    // 🔁 Trigger turunan
     dropdown.dispatchEvent(new Event('change'));
   });
 }
 
-// ✅ Trigger hubungan dropdown berantai
+// ✅ Event Listener Dropdown Berantai
+// 🔗 Di-load saat DOM ready
+
 document.addEventListener('DOMContentLoaded', () => {
-  // Mapel
+  // === Untuk Tambah Mapel ===
   document.getElementById('jenjangDropdown2')?.addEventListener('change', () => {
-    const jenjang = document.getElementById('jenjangDropdown2').value;
-    loadChildDropdown(jenjang, 'kelasDropdown');
+    const j = document.getElementById('jenjangDropdown2').value;
+    loadChildDropdown(j, 'kelasDropdown');
   });
 
-  // Semester
+  // === Untuk Tambah Semester ===
   document.getElementById('jenjangDropdown3')?.addEventListener('change', () => {
-    const jenjang = document.getElementById('jenjangDropdown3').value;
-    loadChildDropdown(jenjang, 'kelasDropdown2');
-  });
-  document.getElementById('kelasDropdown2')?.addEventListener('change', () => {
-    const jenjang = document.getElementById('jenjangDropdown3').value;
-    const kelas = document.getElementById('kelasDropdown2').value;
-    loadChildDropdown(`${jenjang}/${kelas}`, 'mapelDropdown');
+    const j = document.getElementById('jenjangDropdown3').value;
+    loadChildDropdown(j, 'kelasDropdown2');
   });
 
-  // Versi
+  document.getElementById('kelasDropdown2')?.addEventListener('change', () => {
+    const j = document.getElementById('jenjangDropdown3').value;
+    const k = document.getElementById('kelasDropdown2').value;
+    loadChildDropdown(`${j}/${k}`, 'mapelDropdown');
+  });
+
+  // === Untuk Tambah Versi ===
   document.getElementById('jenjangDropdown4')?.addEventListener('change', () => {
-    const jenjang = document.getElementById('jenjangDropdown4').value;
-    loadChildDropdown(jenjang, 'kelasDropdown3');
+    const j = document.getElementById('jenjangDropdown4').value;
+    loadChildDropdown(j, 'kelasDropdown3');
   });
+
   document.getElementById('kelasDropdown3')?.addEventListener('change', () => {
-    const jenjang = document.getElementById('jenjangDropdown4').value;
-    const kelas = document.getElementById('kelasDropdown3').value;
-    loadChildDropdown(`${jenjang}/${kelas}`, 'mapelDropdown2');
+    const j = document.getElementById('jenjangDropdown4').value;
+    const k = document.getElementById('kelasDropdown3').value;
+    loadChildDropdown(`${j}/${k}`, 'mapelDropdown2');
   });
+
   document.getElementById('mapelDropdown2')?.addEventListener('change', () => {
-    const jenjang = document.getElementById('jenjangDropdown4').value;
-    const kelas = document.getElementById('kelasDropdown3').value;
-    const mapel = document.getElementById('mapelDropdown2').value;
-    loadChildDropdown(`${jenjang}/${kelas}/${mapel}`, 'semesterDropdown');
+    const j = document.getElementById('jenjangDropdown4').value;
+    const k = document.getElementById('kelasDropdown3').value;
+    const m = document.getElementById('mapelDropdown2').value;
+    loadChildDropdown(`${j}/${k}/${m}`, 'semesterDropdown');
+  });
+
+  // === Untuk Kelola Soal ===
+  document.getElementById('jenjangManage')?.addEventListener('change', () => {
+    const j = document.getElementById('jenjangManage').value;
+    loadChildDropdown(j, 'kelasManage');
+  });
+
+  document.getElementById('kelasManage')?.addEventListener('change', () => {
+    const j = document.getElementById('jenjangManage').value;
+    const k = document.getElementById('kelasManage').value;
+    loadChildDropdown(`${j}/${k}`, 'mapelManage');
+  });
+
+  document.getElementById('mapelManage')?.addEventListener('change', () => {
+    const j = document.getElementById('jenjangManage').value;
+    const k = document.getElementById('kelasManage').value;
+    const m = document.getElementById('mapelManage').value;
+    loadChildDropdown(`${j}/${k}/${m}`, 'semesterManage');
+  });
+
+  document.getElementById('semesterManage')?.addEventListener('change', () => {
+    const j = document.getElementById('jenjangManage').value;
+    const k = document.getElementById('kelasManage').value;
+    const m = document.getElementById('mapelManage').value;
+    const s = document.getElementById('semesterManage').value;
+    loadChildDropdown(`${j}/${k}/${m}/${s}`, 'versiManage');
   });
 });
 
-// ✅ Tambah Jenjang
+// ✅ Fungsi Tambah Data
 function tambahJenjang() {
   const jenjang = document.getElementById('jenjangInput').value.trim();
   if (!jenjang) return alert('Isi jenjang dulu');
@@ -127,7 +162,6 @@ function tambahJenjang() {
     .catch(err => alert("❌ Gagal tambah jenjang: " + err.message));
 }
 
-// ✅ Tambah Kelas
 function tambahKelas() {
   const jenjang = document.getElementById('jenjangDropdown').value;
   const kelas = document.getElementById('kelasInput').value.trim();
@@ -142,7 +176,6 @@ function tambahKelas() {
     .catch(err => alert("❌ Gagal tambah kelas: " + err.message));
 }
 
-// ✅ Tambah Mapel
 function tambahMapel() {
   const jenjang = document.getElementById('jenjangDropdown2').value;
   const kelas = document.getElementById('kelasDropdown').value;
@@ -158,7 +191,6 @@ function tambahMapel() {
     .catch(err => alert("❌ Gagal tambah mapel: " + err.message));
 }
 
-// ✅ Tambah Semester
 function tambahSemester() {
   const jenjang = document.getElementById('jenjangDropdown3').value;
   const kelas = document.getElementById('kelasDropdown2').value;
@@ -175,7 +207,6 @@ function tambahSemester() {
     .catch(err => alert("❌ Gagal tambah semester: " + err.message));
 }
 
-// ✅ Tambah Versi
 function tambahVersi() {
   const jenjang = document.getElementById('jenjangDropdown4').value;
   const kelas = document.getElementById('kelasDropdown3').value;
@@ -193,51 +224,15 @@ function tambahVersi() {
     .catch(err => alert("❌ Gagal tambah versi: " + err.message));
 }
 
-function updateManageDropdowns() {
-  loadAllKategori(); // Pastikan ini sudah jalan dulu
-
-  document.getElementById('jenjangManage').addEventListener('change', () => {
-    const j = document.getElementById('jenjangManage').value;
-    loadChildDropdown(j, 'kelasManage');
-  });
-
-  document.getElementById('kelasManage').addEventListener('change', () => {
-    const j = document.getElementById('jenjangManage').value;
-    const k = document.getElementById('kelasManage').value;
-    loadChildDropdown(`${j}/${k}`, 'mapelManage');
-  });
-
-  document.getElementById('mapelManage').addEventListener('change', () => {
-    const j = document.getElementById('jenjangManage').value;
-    const k = document.getElementById('kelasManage').value;
-    const m = document.getElementById('mapelManage').value;
-    loadChildDropdown(`${j}/${k}/${m}`, 'semesterManage');
-  });
-
-  document.getElementById('semesterManage').addEventListener('change', () => {
-    const j = document.getElementById('jenjangManage').value;
-    const k = document.getElementById('kelasManage').value;
-    const m = document.getElementById('mapelManage').value;
-    const s = document.getElementById('semesterManage').value;
-    loadChildDropdown(`${j}/${k}/${m}/${s}`, 'versiManage');
-  });
-}
-
+// ✅ Navigasi Kelola Soal
 function navigateToKelolaSoal() {
   const j = document.getElementById('jenjangManage').value;
   const k = document.getElementById('kelasManage').value;
   const m = document.getElementById('mapelManage').value;
   const s = document.getElementById('semesterManage').value;
   const v = document.getElementById('versiManage').value;
-
   if (!j || !k || !m || !s || !v) return alert('Lengkapi semua dropdown terlebih dahulu!');
 
   const path = encodeURIComponent(`${j}/${k}/${m}/${s}/${v}`);
   window.location.href = `kelola-soal.html?path=${path}`;
 }
-
-document.addEventListener('DOMContentLoaded', () => {
-  handleDropdownTriggers(); // biar semua chain dropdown jalan
-  updateManageDropdowns();  // 🔥 ini biar manage versi keisi & tombol bisa jalan
-});
-
