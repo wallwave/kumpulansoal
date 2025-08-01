@@ -8,34 +8,52 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script src="firebase-config.js"></script>
-  <script src="script.js" defer></script>
+  <script defer src="script.js"></script>
 </head>
-<body onload="cekLogin(); loadKategori();">
+<body onload="cekLogin(); loadAllKategori();">
   <div class="header">
     <h2>🧠 Admin Panel Kumpulan Soal</h2>
     <button onclick="logout()">Logout</button>
   </div>
 
   <div class="form">
-    <h3>Tambah Struktur Soal</h3>
-    <input type="text" id="jenjang" placeholder="Jenjang (contoh: SD)" />
-    <input type="text" id="mapel" placeholder="Mapel (contoh: IPA)" />
-    <input type="text" id="kelas" placeholder="Kelas (contoh: kelas_1)" />
-    <input type="text" id="semester" placeholder="Semester (contoh: semester_1)" />
-    <input type="text" id="versi" placeholder="Versi (contoh: versi_1)" />
-    <button onclick="cekLoginLalu(tambahStruktur)">➕ Tambah Struktur</button>
+    <h3>Tambah Jenjang</h3>
+    <input type="text" id="jenjangInput" placeholder="Contoh: SD, SMP, SMA" />
+    <button onclick="cekLoginLalu(tambahJenjang)">Tambah Jenjang</button>
   </div>
 
   <div class="form">
-    <h3>Tambah Kategori</h3>
-    <input type="text" id="kategoriBaru" placeholder="Nama Kategori Baru" />
-    <button onclick="cekLoginLalu(tambahKategoriBaru)">Tambah Kategori</button>
+    <h3>Tambah Kelas</h3>
+    <select id="jenjangDropdown"></select>
+    <input type="text" id="kelasInput" placeholder="Contoh: kelas_1, kelas_2" />
+    <button onclick="cekLoginLalu(tambahKelas)">Tambah Kelas</button>
   </div>
 
   <div class="form">
-    <h3>Hapus Kategori</h3>
-    <select id="kategoriDeleteDropdown"></select>
-    <button onclick="cekLoginLalu(hapusKategori)">Hapus Kategori</button>
+    <h3>Tambah Mapel</h3>
+    <select id="jenjangDropdown2"></select>
+    <select id="kelasDropdown"></select>
+    <input type="text" id="mapelInput" placeholder="Contoh: IPA, Matematika" />
+    <button onclick="cekLoginLalu(tambahMapel)">Tambah Mapel</button>
+  </div>
+
+  <div class="form">
+    <h3>Tambah Semester</h3>
+    <select id="jenjangDropdown3"></select>
+    <select id="kelasDropdown2"></select>
+    <select id="mapelDropdown"></select>
+    <input type="text" id="semesterInput" placeholder="Contoh: semester_1, semester_2" />
+    <button onclick="cekLoginLalu(tambahSemester)">Tambah Semester</button>
+  </div>
+
+  <div class="form">
+    <h3>Tambah Versi</h3>
+    <select id="jenjangDropdown4"></select>
+    <select id="kelasDropdown3"></select>
+    <select id="mapelDropdown2"></select>
+    <select id="semesterDropdown"></select>
+    <input type="text" id="versiInput" placeholder="Contoh: versi_1, versi_2" />
+    <button onclick="cekLoginLalu(tambahVersi)">Tambah Versi</button>
   </div>
 
   <div class="form">
