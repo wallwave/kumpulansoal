@@ -25,7 +25,7 @@ function logout() {
 // ✅ Load Semua Struktur & Sinkronisasi Dropdown
 function loadAllKategori() {
   db.ref().once('value').then(snapshot => {
-    const data = snapshot.val() || {};
+    const data = snapshot.val();
     document.getElementById('output').textContent = JSON.stringify(data, null, 2);
 
     updateDropdown('jenjangDropdown', data);
@@ -33,10 +33,18 @@ function loadAllKategori() {
     updateDropdown('jenjangDropdown3', data);
     updateDropdown('jenjangDropdown4', data);
 
-    // Trigger isi dropdown turunan
-    document.getElementById('jenjangDropdown2')?.dispatchEvent(new Event('change'));
-    document.getElementById('jenjangDropdown3')?.dispatchEvent(new Event('change'));
-    document.getElementById('jenjangDropdown4')?.dispatchEvent(new Event('change'));
+    // ⛓️ Panggil isi dropdown anak-anak secara eksplisit
+    const jenjang2 = document.getElementById('jenjangDropdown2').value;
+    if (jenjang2) loadChildDropdown(jenjang2, 'kelasDropdown');
+
+    const jenjang3 = document.getElementById('jenjangDropdown3').value;
+    if (jenjang3) loadChildDropdown(jenjang3, 'kelasDropdown2');
+
+    const jenjang4 = document.getElementById('jenjangDropdown4').value;
+    if (jenjang4) loadChildDropdown(jenjang4, 'kelasDropdown3');
+
+    // 🪝 Pasang trigger sekali aja
+    handleDropdownTriggers();
   });
 }
 
