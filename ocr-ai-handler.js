@@ -1,6 +1,5 @@
 // ocr-ai-handler.js
 
-// 🔐 Cek login
 function cekLogin() {
   const login = localStorage.getItem("admin_login");
   if (login !== "true") {
@@ -9,13 +8,11 @@ function cekLogin() {
   }
 }
 
-// 🔧 Ambil path dari URL
 function getPath() {
   const params = new URLSearchParams(window.location.search);
   return decodeURIComponent(params.get("path") || "");
 }
 
-// 🖼️ Simpan gambar dan trigger OCR scan
 let uploadedImageDataUrl = "";
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -32,14 +29,13 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-// 🧠 Proses OCR via API Gratis (ocr.space)
 function mulaiScanOCR() {
   if (!uploadedImageDataUrl) return alert("❗ Upload gambar dulu!");
   document.getElementById("ocrResult").value = "⌛ Sedang memproses...";
 
   fetch("https://api.ocr.space/parse/image", {
     method: "POST",
-    headers: { apikey: "helloworld" }, // demo key
+    headers: { apikey: "helloworld" },
     body: new URLSearchParams({
       base64Image: uploadedImageDataUrl,
       language: "ind",
@@ -56,15 +52,13 @@ function mulaiScanOCR() {
     });
 }
 
-// 🧠 AI Parsing pintar: OCR ➝ JSON format soal
 function parseOCRToEditor() {
   const raw = document.getElementById("ocrResult").value;
   const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
   const soalList = [];
 
   let current = null;
-  let stage = 0; // 0: init, 1: soal, 2-5: opsi, 6: kunci
-  let nomor = 1;
+  let stage = 0;
 
   lines.forEach(line => {
     if (/^Soal\s*\d+/i.test(line)) {
@@ -85,10 +79,13 @@ function parseOCRToEditor() {
   });
 
   if (current) soalList.push(current);
+
+  const jsonArea = document.getElementById("jsonResult");
+  if (jsonArea) jsonArea.value = JSON.stringify(soalList, null, 2);
+
   renderSoalEditor(soalList);
 }
 
-// 🔁 Tampilkan hasil soal dalam editor
 function renderSoalEditor(soalList) {
   const container = document.getElementById("daftarSoal");
   container.innerHTML = "";
