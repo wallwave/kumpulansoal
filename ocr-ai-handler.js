@@ -66,44 +66,50 @@ async function mulaiScanOCR() {
 // 🧠 Parse hasil OCR menjadi soal JSON
 function parseOCRToEditor() {
   const raw = document.getElementById("ocrResult").value;
-  const container = document.getElementById("daftarSoal");
-  const jsonArea = document.getElementById("jsonResult");
-
-  // Indikator loading ke editor
-  container.innerHTML = `<div style="padding: 10px; color: gray;">⚙️ Sedang memproses parsing ke editor soal...</div>`;
-
   const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
   const soalList = [];
 
   let current = null;
-  let stage = 0;
+  let opsiIndex = 0;
+  let nomor = 1;
 
-  lines.forEach(line => {
-    if (/^Soal\s*\d+/i.test(line)) {
+  const abcd = ['a', 'b', 'c', 'd'];
+
+  lines.forEach((line, idx) => {
+    // Deteksi nomor soal
+    if (/^\d+[\).]/.test(line) || /^Soal\s*\d+/i.test(line)) {
       if (current) soalList.push(current);
       current = { question: "", a: "", b: "", c: "", d: "", correct: "a" };
-      stage = 1;
-    } else if (stage === 1) {
-      current.question = line;
-      stage = 2;
-    } else if (stage >= 2 && stage <= 5) {
-      const opt = ["a", "b", "c", "d"][stage - 2];
-      current[opt] = line;
-      stage++;
-    } else if (stage > 5 && /^[abcdABCD]$/.test(line)) {
+      opsiIndex = 0;
+      current.question = line.replace(/^\d+[\).]\s*/, "").replace(/^Soal\s*\d+[:.)]?\s*/i, "");
+    }
+    // Deteksi opsi
+    else if (/^[a-dA-D][).]/.test(line)) {
+      const opt = abcd[opsiIndex];
+      current[opt] = line.replace(/^[a-dA-D][).]\s*/, "");
+      opsiIndex++;
+    }
+    // Deteksi jawaban benar (misal cuma satu huruf)
+    else if (/^[a-dA-D]$/.test(line)) {
       current.correct = line.toLowerCase();
-      stage = 0;
+    }
+    // Tambahan fallback (kalau OCR ga perfect)
+    else if (current && current.question && opsiIndex < 4) {
+      const opt = abcd[opsiIndex];
+      current[opt] = line;
+      opsiIndex++;
     }
   });
 
   if (current) soalList.push(current);
 
-  // Tampilkan ke textarea JSON
+  // JSON Preview
+  const jsonArea = document.getElementById("jsonResult");
   if (jsonArea) jsonArea.value = JSON.stringify(soalList, null, 2);
 
-  // Render ke editor
   renderSoalEditor(soalList);
 }
+
 
 
 function renderSoalEditor(soalList) {
