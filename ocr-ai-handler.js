@@ -71,35 +71,38 @@ function parseOCRToEditor() {
   let current = null;
   let index = 1;
 
-  const nomorSoalRegex = /^\d+[\.\)\s]+/i;
-  const opsiRegex = /^[a-dA-D][\.\)\s]+/;
+  const nomorSoalRegex = /^\d+[\.\)\s]+/;
+  const opsiPattern = /([a-dA-D])[\.\)\s]+([^a-dA-D]+?)(?=([a-dA-D][\.\)\s])|$)/g;
 
   lines.forEach(line => {
     if (nomorSoalRegex.test(line)) {
-      if (current) {
-        soalObj[index++] = current;
-      }
+      if (current) soalObj[index++] = current;
       current = { question: line.replace(nomorSoalRegex, "").trim(), a: "", b: "", c: "", d: "", correct: "a" };
-    } else if (opsiRegex.test(line) && current) {
-      const huruf = line[0].toLowerCase();
-      const isi = line.slice(2).trim();
-      if (["a", "b", "c", "d"].includes(huruf)) {
-        current[huruf] = isi;
-      }
+    } else if (current && [...line.matchAll(opsiPattern)].length >= 1) {
+      const matches = [...line.matchAll(opsiPattern)];
+      matches.forEach(match => {
+        const huruf = match[1].toLowerCase();
+        const isi = match[2].replace(/[€•\-]/g, "").trim();
+        if (["a", "b", "c", "d"].includes(huruf)) {
+          current[huruf] = isi;
+        }
+      });
     } else if (/^[a-dA-D]$/.test(line) && current) {
       current.correct = line.toLowerCase();
+    } else if (current && !current.question) {
+      // Kalau line tidak termasuk opsi dan bukan nomor soal, dan belum ada question
+      current.question = line;
     }
   });
 
-  if (current) {
-    soalObj[index] = current;
-  }
+  if (current) soalObj[index] = current;
 
   const jsonArea = document.getElementById("jsonResult");
   if (jsonArea) jsonArea.value = JSON.stringify(soalObj, null, 2);
 
   renderSoalEditor(Object.values(soalObj));
 }
+
 
 
 
