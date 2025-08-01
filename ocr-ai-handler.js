@@ -1,74 +1,127 @@
-// 📦 ocr-ai-handler.js
+// ocr-ai-handler.js
 
-// 🧠 Fungsi untuk menangani file gambar & proses OCR
-function handleImageDrop(event) {
-  event.preventDefault();
-  const file = event.dataTransfer.files[0];
-  if (!file.type.startsWith('image/')) return alert('File bukan gambar.');
+// 🔐 Cek login dulu biar aman
+function cekLogin() {
+  const login = localStorage.getItem("admin_login");
+  if (login !== "true") {
+    alert("Kamu belum login!");
+    window.location.href = "login.html";
+  }
+}
+
+// 🔧 Ambil path dari URL
+function getPath() {
+  const params = new URLSearchParams(window.location.search);
+  return decodeURIComponent(params.get("path") || "");
+}
+
+// 🧠 Proses gambar dengan OCR (pakai OCR.space API misalnya)
+async function processImageAI(imageDataUrl) {
+  // Simulasi dummy parsing
+  return [
+    {
+      question: "Apa itu gaya gravitasi?",
+      a: "Tarik bumi",
+      b: "Tekanan udara",
+      c: "Listrik statis",
+      d: "Gaya dorong angin",
+      correct: "a",
+    },
+    {
+      question: "Air mengalir dari tempat tinggi ke...",
+      a: "Tempat lebih tinggi",
+      b: "Tempat lebih rendah",
+      c: "Samping",
+      d: "Langit",
+      correct: "b",
+    },
+  ];
+}
+
+// 🖼️ Upload gambar soal
+function handleImageUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
 
   const reader = new FileReader();
-  reader.onload = function (e) {
-    document.getElementById('imagePreview').src = e.target.result;
-    document.getElementById('ocrStatus').innerText = '🔄 Proses OCR...';
+  reader.onload = async (e) => {
+    const imageDataUrl = e.target.result;
+    document.getElementById("ocrPreview").src = imageDataUrl;
 
-    runOCRonImage(e.target.result);
+    const hasil = await processImageAI(imageDataUrl);
+    renderAIResult(hasil);
   };
   reader.readAsDataURL(file);
 }
 
-function runOCRonImage(base64Image) {
-  // Simulasi AI/OCR processing
-  setTimeout(() => {
-    const hasilAI = [
-      {
-        question: "Air mengalir dari tempat tinggi ke...",
-        a: "Tempat tinggi",
-        b: "Tempat rendah",
-        c: "Langit",
-        d: "Udara",
-        correct: "b"
-      },
-      {
-        question: "Benda yang termasuk sumber energi adalah...",
-        a: "Batu",
-        b: "Air",
-        c: "Kertas",
-        d: "Kaca",
-        correct: "b"
-      }
-    ];
+// 📋 Render hasil AI ke editor
+function renderAIResult(soalList) {
+  const container = document.getElementById("daftarSoal");
+  container.innerHTML = "";
 
-    renderHasilAI(hasilAI);
-    document.getElementById('ocrStatus').innerText = '✅ OCR selesai, silakan review';
-  }, 2000);
-}
+  soalList.forEach((soal, i) => {
+    const wrap = document.createElement("div");
+    wrap.className = "soal-item";
+    wrap.style.border = "1px solid #ccc";
+    wrap.style.padding = "10px";
+    wrap.style.marginBottom = "10px";
+    wrap.style.background = "#fff";
 
-// 🧾 Render hasil OCR ke daftar soal
-function renderHasilAI(dataArray) {
-  const container = document.getElementById('hasilAIContainer');
-  container.innerHTML = '';
-
-  dataArray.forEach((item, idx) => {
-    const div = document.createElement('div');
-    div.className = 'soal-box';
-    div.innerHTML = `
-      <label>Soal ${idx + 1}</label>
-      <input value="${item.question}" class="soal-input" />
-      <div class="opsi">a. <input value="${item.a}" /></div>
-      <div class="opsi">b. <input value="${item.b}" /></div>
-      <div class="opsi">c. <input value="${item.c}" /></div>
-      <div class="opsi">d. <input value="${item.d}" /></div>
-      <div class="opsi">Kunci: <select>
-        <option ${item.correct === 'a' ? 'selected' : ''}>a</option>
-        <option ${item.correct === 'b' ? 'selected' : ''}>b</option>
-        <option ${item.correct === 'c' ? 'selected' : ''}>c</option>
-        <option ${item.correct === 'd' ? 'selected' : ''}>d</option>
-      </select></div>
+    wrap.innerHTML = `
+      <label>Soal ${i + 1}</label>
+      <textarea class="question" rows="2">${soal.question}</textarea>
+      <input class="a" placeholder="A" value="${soal.a}" />
+      <input class="b" placeholder="B" value="${soal.b}" />
+      <input class="c" placeholder="C" value="${soal.c}" />
+      <input class="d" placeholder="D" value="${soal.d}" />
+      <select class="correct">
+        <option value="a" ${soal.correct === "a" ? "selected" : ""}>A</option>
+        <option value="b" ${soal.correct === "b" ? "selected" : ""}>B</option>
+        <option value="c" ${soal.correct === "c" ? "selected" : ""}>C</option>
+        <option value="d" ${soal.correct === "d" ? "selected" : ""}>D</option>
+      </select>
     `;
-    container.appendChild(div);
+    container.appendChild(wrap);
   });
 }
 
-// 🎯 Export jika pakai module bundler
-// export { handleImageDrop, runOCRonImage, renderHasilAI }
+// 💾 Simpan soal ke Firebase
+function simpanKeFirebase() {
+  const path = getPath();
+  const soalEls = document.querySelectorAll(".soal-item");
+  const soalObj = {};
 
+  soalEls.forEach((el, i) => {
+    const question = el.querySelector(".question").value.trim();
+    const a = el.querySelector(".a").value.trim();
+    const b = el.querySelector(".b").value.trim();
+    const c = el.querySelector(".c").value.trim();
+    const d = el.querySelector(".d").value.trim();
+    const correct = el.querySelector(".correct").value;
+
+    soalObj[i + 1] = { question, a, b, c, d, correct };
+  });
+
+  db.ref(`${path}/soal`).set(soalObj)
+    .then(() => alert("✅ Soal berhasil disimpan!"))
+    .catch((err) => alert("❌ Gagal simpan soal: " + err.message));
+}
+
+// 🔁 Tampilkan soal dari Firebase
+function tampilkanSoalTersimpan() {
+  const path = getPath();
+  db.ref(`${path}/soal`).once("value").then(snapshot => {
+    const data = snapshot.val();
+    if (data) {
+      const arr = Object.keys(data).map(k => data[k]);
+      renderAIResult(arr);
+    }
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  cekLogin();
+  tampilkanSoalTersimpan();
+  document.getElementById("uploadSoalGambar").addEventListener("change", handleImageUpload);
+  document.getElementById("btnSimpanSoal").addEventListener("click", simpanKeFirebase);
+});
