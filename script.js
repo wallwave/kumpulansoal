@@ -41,18 +41,17 @@ function tambahStruktur() {
 
   const path = `${jenjang}/${mapel}/${kelas}/${semester}/${versi}`;
 
-  db.ref(path).set({})
-    .then(() => {
-      console.log(`✅ Struktur ${path} berhasil ditambahkan`);
-      alert("✅ Struktur berhasil ditambahkan!");
-      loadStruktur();
-    })
-    .catch((error) => {
-      console.error("❌ Gagal menambahkan struktur:", error);
-      alert("❌ Gagal menambahkan struktur: " + error.message);
-    });
+  // Gunakan dummy field agar tidak dihapus oleh Firebase
+  db.ref(path).set({
+    "__init": true
+  }).then(() => {
+    alert("✅ Struktur berhasil ditambahkan!");
+    loadStruktur();
+  }).catch((err) => {
+    alert("❌ Gagal menambahkan struktur: " + err.message);
+    console.error(err);
+  });
 }
-
 
 // ✅ Load kategori list
 function loadKategori() {
