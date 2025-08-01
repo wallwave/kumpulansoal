@@ -1,5 +1,3 @@
-// ocr-ai-handler.js
-
 function cekLogin() {
   const login = localStorage.getItem("admin_login");
   if (login !== "true") {
@@ -16,40 +14,44 @@ function getPath() {
 let uploadedImageDataUrl = "";
 
 document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("uploadSoalGambar").addEventListener("change", (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
+  const uploadInput = document.getElementById("uploadSoalGambar");
+  if (uploadInput) {
+    uploadInput.addEventListener("change", (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      uploadedImageDataUrl = e.target.result;
-      document.getElementById("ocrPreview").src = uploadedImageDataUrl;
-    };
-    reader.readAsDataURL(file);
-  });
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        uploadedImageDataUrl = e.target.result;
+        document.getElementById("ocrPreview").src = uploadedImageDataUrl;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  const btnScan = document.getElementById("btnMulaiScan");
+  if (btnScan) {
+    btnScan.addEventListener("click", mulaiScanOCR);
+  }
+
+  const btnParse = document.getElementById("btnParseOCR");
+  if (btnParse) {
+    btnParse.addEventListener("click", parseOCRToEditor);
+  }
 });
 
-function mulaiScanOCR() {
-  if (!uploadedImageDataUrl) return alert("❗ Upload gambar dulu!");
-  document.getElementById("ocrResult").value = "⌛ Sedang memproses...";
+async function mulaiScanOCR() {
+  if (!uploadedImageDataUrl) return alert("Upload gambar dulu!");
+  const ocrResult = document.getElementById("ocrResult");
+  ocrResult.value = "⌛ Sedang OCR dengan Tesseract.js...";
 
-  fetch("https://api.ocr.space/parse/image", {
-    method: "POST",
-    headers: { apikey: "helloworld" },
-    body: new URLSearchParams({
-      base64Image: uploadedImageDataUrl,
-      language: "ind",
-      isOverlayRequired: false,
-    }),
-  })
-    .then((res) => res.json())
-    .then((res) => {
-      const hasil = res.ParsedResults?.[0]?.ParsedText || "";
-      document.getElementById("ocrResult").value = hasil;
-    })
-    .catch((err) => {
-      document.getElementById("ocrResult").value = "❌ Gagal OCR: " + err.message;
-    });
+  const { data: { text } } = await Tesseract.recognize(uploadedImageDataUrl, 'ind', {
+    logger: m => {
+      ocrResult.value = `🌀 ${m.status} (${Math.round(m.progress * 100)}%)`;
+    }
+  });
+
+  ocrResult.value = text;
 }
 
 function parseOCRToEditor() {
