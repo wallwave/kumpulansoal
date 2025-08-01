@@ -67,47 +67,40 @@ async function mulaiScanOCR() {
 function parseOCRToEditor() {
   const raw = document.getElementById("ocrResult").value;
   const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-  const soalList = [];
-
+  const soalObj = {};
   let current = null;
-  let nomorSoalRegex = /^\d+[\).]{1,2}/;
-  let opsiRegex = /^[a-dA-D][\.\)\s]+/;
-  let opsiBuffer = [];
+  let index = 1;
+
+  const nomorSoalRegex = /^\d+[\.\)\s]+/i;
+  const opsiRegex = /^[a-dA-D][\.\)\s]+/;
 
   lines.forEach(line => {
     if (nomorSoalRegex.test(line)) {
-      if (current) soalList.push(current);
-      current = { question: "", a: "", b: "", c: "", d: "", correct: "a" };
-      current.question = line.replace(nomorSoalRegex, "").trim();
-      opsiBuffer = [];
-    }
-    else if (opsiRegex.test(line)) {
-      const huruf = line.charAt(0).toLowerCase();
+      if (current) {
+        soalObj[index++] = current;
+      }
+      current = { question: line.replace(nomorSoalRegex, "").trim(), a: "", b: "", c: "", d: "", correct: "a" };
+    } else if (opsiRegex.test(line) && current) {
+      const huruf = line[0].toLowerCase();
       const isi = line.slice(2).trim();
       if (["a", "b", "c", "d"].includes(huruf)) {
         current[huruf] = isi;
       }
-    }
-    else if (line.includes("€") || line.includes(" - ") || line.includes(".")) {
-      // Fallback: split otomatis opsi dalam satu baris
-      const parts = line.split(/[€•\-]/).map(s => s.trim()).filter(Boolean);
-      ["a", "b", "c", "d"].forEach((huruf, idx) => {
-        if (parts[idx]) current[huruf] = parts[idx];
-      });
-    }
-    else if (/^[a-dA-D]$/.test(line)) {
+    } else if (/^[a-dA-D]$/.test(line) && current) {
       current.correct = line.toLowerCase();
     }
   });
 
-  if (current) soalList.push(current);
+  if (current) {
+    soalObj[index] = current;
+  }
 
-  // Tampilkan hasil parsing ke textarea JSON dan daftar editor
   const jsonArea = document.getElementById("jsonResult");
-  if (jsonArea) jsonArea.value = JSON.stringify(soalList, null, 2);
+  if (jsonArea) jsonArea.value = JSON.stringify(soalObj, null, 2);
 
-  renderSoalEditor(soalList);
+  renderSoalEditor(Object.values(soalObj));
 }
+
 
 
 
