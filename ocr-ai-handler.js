@@ -1,6 +1,4 @@
-// ocr-ai-handler.js
-
-// 🔐 Cek login dulu biar aman
+// 🔐 Cek login dulu
 function cekLogin() {
   const login = localStorage.getItem("admin_login");
   if (login !== "true") {
@@ -9,36 +7,64 @@ function cekLogin() {
   }
 }
 
-// 🔧 Ambil path dari URL
+// 🔍 Ambil path dari URL
 function getPath() {
   const params = new URLSearchParams(window.location.search);
   return decodeURIComponent(params.get("path") || "");
 }
 
-// 🧠 Proses gambar dengan OCR (pakai OCR.space API misalnya)
+// 📦 Upload gambar soal → kirim ke OCR.space
 async function processImageAI(imageDataUrl) {
-  // Simulasi dummy parsing
-  return [
-    {
-      question: "Apa itu gaya gravitasi?",
-      a: "Tarik bumi",
-      b: "Tekanan udara",
-      c: "Listrik statis",
-      d: "Gaya dorong angin",
-      correct: "a",
+  const formData = new FormData();
+  formData.append("base64Image", imageDataUrl);
+  formData.append("language", "ind");
+  formData.append("isOverlayRequired", "false");
+
+  const res = await fetch("https://api.ocr.space/parse/image", {
+    method: "POST",
+    headers: {
+      apikey: "helloworld" // Gratis & aman
     },
-    {
-      question: "Air mengalir dari tempat tinggi ke...",
-      a: "Tempat lebih tinggi",
-      b: "Tempat lebih rendah",
-      c: "Samping",
-      d: "Langit",
-      correct: "b",
-    },
-  ];
+    body: formData,
+  });
+
+  const json = await res.json();
+  const text = json.ParsedResults?.[0]?.ParsedText || "";
+
+  console.log("📄 OCR Text Result:\n", text);
+
+  return parseSoalFromText(text);
 }
 
-// 🖼️ Upload gambar soal
+// 🧠 Parser teks OCR jadi array soal
+function parseSoalFromText(text) {
+  const soalList = [];
+  const soalRaw = text.split(/Soal\s*\d+/i).filter(s => s.trim());
+
+  soalRaw.forEach((item, index) => {
+    const lines = item.trim().split('\n').filter(l => l.trim());
+    if (lines.length < 5) return;
+
+    const question = lines[0];
+    const options = lines.slice(1, 5);
+    let correct = (lines[5] || "").trim().toLowerCase();
+
+    if (!["a", "b", "c", "d"].includes(correct)) correct = "a";
+
+    soalList.push({
+      question,
+      a: options[0],
+      b: options[1],
+      c: options[2],
+      d: options[3],
+      correct,
+    });
+  });
+
+  return soalList;
+}
+
+// 📤 Upload gambar → tampilkan preview & hasil AI
 function handleImageUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -54,7 +80,7 @@ function handleImageUpload(event) {
   reader.readAsDataURL(file);
 }
 
-// 📋 Render hasil AI ke editor
+// 🧾 Render soal hasil parsing
 function renderAIResult(soalList) {
   const container = document.getElementById("daftarSoal");
   container.innerHTML = "";
@@ -107,7 +133,7 @@ function simpanKeFirebase() {
     .catch((err) => alert("❌ Gagal simpan soal: " + err.message));
 }
 
-// 🔁 Tampilkan soal dari Firebase
+// 🔁 Load soal tersimpan dari Firebase
 function tampilkanSoalTersimpan() {
   const path = getPath();
   db.ref(`${path}/soal`).once("value").then(snapshot => {
@@ -119,6 +145,7 @@ function tampilkanSoalTersimpan() {
   });
 }
 
+// 🚀 Inisialisasi saat halaman dimuat
 document.addEventListener("DOMContentLoaded", () => {
   cekLogin();
   tampilkanSoalTersimpan();
