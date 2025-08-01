@@ -1,3 +1,5 @@
+// ocr-ai-handler.js
+
 function cekLogin() {
   const login = localStorage.getItem("admin_login");
   if (login !== "true") {
@@ -13,6 +15,7 @@ function getPath() {
 
 let uploadedImageDataUrl = "";
 
+// Inisialisasi
 document.addEventListener("DOMContentLoaded", () => {
   const uploadInput = document.getElementById("uploadSoalGambar");
   if (uploadInput) {
@@ -38,8 +41,14 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnParse) {
     btnParse.addEventListener("click", parseOCRToEditor);
   }
+
+  const simpanBtn = document.getElementById("btnSimpanSoal");
+  if (simpanBtn) {
+    simpanBtn.addEventListener("click", simpanSemuaSoalKeFirebase);
+  }
 });
 
+// 🔍 Proses OCR
 async function mulaiScanOCR() {
   if (!uploadedImageDataUrl) return alert("Upload gambar dulu!");
   const ocrResult = document.getElementById("ocrResult");
@@ -54,9 +63,19 @@ async function mulaiScanOCR() {
   ocrResult.value = text;
 }
 
+// 🧠 Parse hasil OCR menjadi soal JSON
 function parseOCRToEditor() {
   const raw = document.getElementById("ocrResult").value;
-  const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+
+  const cleaned = raw
+    .replace(/[€©•·]/g, '')
+    .replace(/—/g, '-')
+    .replace(/\.{2,}/g, '.')
+    .replace(/\s+/g, ' ')
+    .replace(/([a-d])\s*[\.\)]\s*/gi, '$1. ')
+    .replace(/(\d+)\s*\.\s*/g, 'Soal $1\n');
+
+  const lines = cleaned.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
   const soalList = [];
 
   let current = null;
@@ -71,12 +90,15 @@ function parseOCRToEditor() {
       current.question = line;
       stage = 2;
     } else if (stage >= 2 && stage <= 5) {
-      const opt = ["a", "b", "c", "d"][stage - 2];
-      current[opt] = line;
-      stage++;
-    } else if (stage > 5 && /^[abcdABCD]$/.test(line)) {
+      const match = line.match(/^([a-dA-D])\.\s*(.*)/);
+      if (match) {
+        const key = match[1].toLowerCase();
+        const value = match[2].trim();
+        current[key] = value;
+        stage++;
+      }
+    } else if (stage > 5 && /^[a-dA-D]$/.test(line)) {
       current.correct = line.toLowerCase();
-      stage = 0;
     }
   });
 
@@ -117,6 +139,7 @@ function renderSoalEditor(soalList) {
     container.appendChild(wrap);
   });
 }
+
 function simpanSemuaSoalKeFirebase() {
   const path = getPath();
   const soalEls = document.querySelectorAll(".soal-item");
@@ -137,12 +160,3 @@ function simpanSemuaSoalKeFirebase() {
     .then(() => alert("✅ Soal berhasil disimpan ke Firebase!"))
     .catch((err) => alert("❌ Gagal simpan soal: " + err.message));
 }
-
-document.addEventListener("DOMContentLoaded", () => {
-  // Tambahin event listener untuk simpan soal juga
-  const simpanBtn = document.getElementById("btnSimpanSoal");
-  if (simpanBtn) {
-    simpanBtn.addEventListener("click", simpanSemuaSoalKeFirebase);
-  }
-});
-
