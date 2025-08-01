@@ -66,16 +66,13 @@ async function mulaiScanOCR() {
 // 🧠 Parse hasil OCR menjadi soal JSON
 function parseOCRToEditor() {
   const raw = document.getElementById("ocrResult").value;
+  const container = document.getElementById("daftarSoal");
+  const jsonArea = document.getElementById("jsonResult");
 
-  const cleaned = raw
-    .replace(/[€©•·]/g, '')
-    .replace(/—/g, '-')
-    .replace(/\.{2,}/g, '.')
-    .replace(/\s+/g, ' ')
-    .replace(/([a-d])\s*[\.\)]\s*/gi, '$1. ')
-    .replace(/(\d+)\s*\.\s*/g, 'Soal $1\n');
+  // Indikator loading ke editor
+  container.innerHTML = `<div style="padding: 10px; color: gray;">⚙️ Sedang memproses parsing ke editor soal...</div>`;
 
-  const lines = cleaned.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
   const soalList = [];
 
   let current = null;
@@ -90,25 +87,24 @@ function parseOCRToEditor() {
       current.question = line;
       stage = 2;
     } else if (stage >= 2 && stage <= 5) {
-      const match = line.match(/^([a-dA-D])\.\s*(.*)/);
-      if (match) {
-        const key = match[1].toLowerCase();
-        const value = match[2].trim();
-        current[key] = value;
-        stage++;
-      }
-    } else if (stage > 5 && /^[a-dA-D]$/.test(line)) {
+      const opt = ["a", "b", "c", "d"][stage - 2];
+      current[opt] = line;
+      stage++;
+    } else if (stage > 5 && /^[abcdABCD]$/.test(line)) {
       current.correct = line.toLowerCase();
+      stage = 0;
     }
   });
 
   if (current) soalList.push(current);
 
-  const jsonArea = document.getElementById("jsonResult");
+  // Tampilkan ke textarea JSON
   if (jsonArea) jsonArea.value = JSON.stringify(soalList, null, 2);
 
+  // Render ke editor
   renderSoalEditor(soalList);
 }
+
 
 function renderSoalEditor(soalList) {
   const container = document.getElementById("daftarSoal");
