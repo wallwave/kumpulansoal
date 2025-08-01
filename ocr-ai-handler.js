@@ -117,3 +117,32 @@ function renderSoalEditor(soalList) {
     container.appendChild(wrap);
   });
 }
+function simpanSemuaSoalKeFirebase() {
+  const path = getPath();
+  const soalEls = document.querySelectorAll(".soal-item");
+  const soalObj = {};
+
+  soalEls.forEach((el, i) => {
+    const question = el.querySelector(".question").value.trim();
+    const a = el.querySelector(".a").value.trim();
+    const b = el.querySelector(".b").value.trim();
+    const c = el.querySelector(".c").value.trim();
+    const d = el.querySelector(".d").value.trim();
+    const correct = el.querySelector(".correct").value;
+
+    soalObj[i + 1] = { question, a, b, c, d, correct };
+  });
+
+  db.ref(`${path}/soal`).set(soalObj)
+    .then(() => alert("✅ Soal berhasil disimpan ke Firebase!"))
+    .catch((err) => alert("❌ Gagal simpan soal: " + err.message));
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  // Tambahin event listener untuk simpan soal juga
+  const simpanBtn = document.getElementById("btnSimpanSoal");
+  if (simpanBtn) {
+    simpanBtn.addEventListener("click", simpanSemuaSoalKeFirebase);
+  }
+});
+
