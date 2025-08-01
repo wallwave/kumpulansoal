@@ -192,6 +192,7 @@ function tambahVersi() {
     })
     .catch(err => alert("❌ Gagal tambah versi: " + err.message));
 }
+
 function updateManageDropdowns() {
   loadAllKategori(); // Pastikan ini sudah jalan dulu
 
@@ -233,4 +234,3 @@ function navigateToKelolaSoal() {
   const path = encodeURIComponent(`${j}/${k}/${m}/${s}/${v}`);
   window.location.href = `kelola-soal.html?path=${path}`;
 }
-
