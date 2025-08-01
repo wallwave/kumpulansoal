@@ -1,40 +1,37 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kelola Soal</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css">
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script src="firebase-config.js"></script>
-  <script src="ocr-ai-handler.js" defer></script>
+  <script defer src="kelola-soal.js"></script>
 </head>
-<body onload="cekLogin();">
+<body onload="cekLogin(); tampilkanSoalTersimpan();">
   <div class="header">
     <h2>🧾 Kelola Soal</h2>
     <button onclick="logout()">Logout</button>
   </div>
 
-  <!-- Step 1: Upload -->
   <div class="form">
-    <h3>📥 Upload Gambar Soal</h3>
-    <input type="file" accept="image/*" id="uploadSoalGambar" />
-    <img id="ocrPreview" style="max-width:100%; margin-top:10px; border:1px solid #ccc;" />
+    <h3>📥 Upload Gambar Soal (OCR)</h3>
+    <input type="file" accept="image/*" onchange="handleImageUpload(event)">
+    <img id="ocrPreview" style="margin-top:10px; max-width:100%;">
   </div>
 
-  <!-- Step 2: Teks Mentah dari OCR -->
   <div class="form">
-    <h3>📝 Hasil OCR Mentah</h3>
+    <h3>📄 Hasil OCR Mentah</h3>
     <textarea id="ocrResult" rows="10" style="width:100%; font-family:monospace;"></textarea>
-    <button onclick="parseOCRManual()">🔍 Parse Jadi Format Soal</button>
+    <button onclick="parseOCRToEditor()">🔍 Parse jadi soal</button>
   </div>
 
-  <!-- Step 3: Editor Soal -->
   <div class="form">
-    <h3>✍️ Editor Soal (Hasil Parsing)</h3>
-    <div id="daftarSoal"></div>
-    <button id="btnSimpanSoal">🚀 Simpan ke Firebase</button>
+    <h3>✍️ Editor Soal</h3>
+    <div id="daftarSoal" class="scrollable-box"></div>
+    <button onclick="simpanSemuaSoalKeFirebase()">🚀 Simpan Semua ke Firebase</button>
   </div>
 </body>
 </html>
