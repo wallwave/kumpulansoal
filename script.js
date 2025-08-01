@@ -28,15 +28,21 @@ function loadAllKategori() {
     const data = snapshot.val();
     document.getElementById('output').textContent = JSON.stringify(data, null, 2);
 
+    // Update jenjang semua dropdown
     updateDropdown('jenjangDropdown', data);
     updateDropdown('jenjangDropdown2', data);
     updateDropdown('jenjangDropdown3', data);
     updateDropdown('jenjangDropdown4', data);
 
-    // Trigger dropdown dependensi
-    handleDropdownTriggers();
+    // Force trigger dropdown events untuk isi turunan
+    setTimeout(() => {
+      document.getElementById('jenjangDropdown2')?.dispatchEvent(new Event('change'));
+      document.getElementById('jenjangDropdown3')?.dispatchEvent(new Event('change'));
+      document.getElementById('jenjangDropdown4')?.dispatchEvent(new Event('change'));
+    }, 300);
   });
 }
+
 
 // 🔁 Helper isi dropdown jenjang
 function updateDropdown(dropdownId, data) {
