@@ -1,82 +1,94 @@
+// ocr-ai-handler.js
+
+// 🔐 Cek login
 function cekLogin() {
-  const login = localStorage.getItem('admin_login');
-  if (login !== 'true') {
-    alert('Kamu belum login!');
-    window.location.href = 'login.html';
+  const login = localStorage.getItem("admin_login");
+  if (login !== "true") {
+    alert("Kamu belum login!");
+    window.location.href = "login.html";
   }
 }
 
-function logout() {
-  localStorage.removeItem('admin_login');
-  window.location.href = 'login.html';
-}
-
+// 🔧 Ambil path dari URL
 function getPath() {
   const params = new URLSearchParams(window.location.search);
-  return decodeURIComponent(params.get('path') || '');
+  return decodeURIComponent(params.get("path") || "");
 }
 
-function handleImageUpload(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const imageDataUrl = e.target.result;
-    document.getElementById("ocrPreview").src = imageDataUrl;
+// 🖼️ Simpan gambar dan trigger OCR scan
+let uploadedImageDataUrl = "";
 
-    // Pakai OCR.space API publik gratis
-    fetch("https://api.ocr.space/parse/image", {
-      method: "POST",
-      headers: {
-        apikey: "helloworld", // key gratis demo
-      },
-      body: new URLSearchParams({
-        base64Image: imageDataUrl,
-        language: "ind",
-        isOverlayRequired: false
-      }),
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("uploadSoalGambar").addEventListener("change", (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      uploadedImageDataUrl = e.target.result;
+      document.getElementById("ocrPreview").src = uploadedImageDataUrl;
+    };
+    reader.readAsDataURL(file);
+  });
+});
+
+// 🧠 Proses OCR via API Gratis (ocr.space)
+function mulaiScanOCR() {
+  if (!uploadedImageDataUrl) return alert("❗ Upload gambar dulu!");
+  document.getElementById("ocrResult").value = "⌛ Sedang memproses...";
+
+  fetch("https://api.ocr.space/parse/image", {
+    method: "POST",
+    headers: { apikey: "helloworld" }, // demo key
+    body: new URLSearchParams({
+      base64Image: uploadedImageDataUrl,
+      language: "ind",
+      isOverlayRequired: false,
+    }),
+  })
+    .then((res) => res.json())
+    .then((res) => {
+      const hasil = res.ParsedResults?.[0]?.ParsedText || "";
+      document.getElementById("ocrResult").value = hasil;
     })
-      .then(res => res.json())
-      .then(res => {
-        const hasil = res.ParsedResults?.[0]?.ParsedText || "";
-        document.getElementById("ocrResult").value = hasil;
-      })
-      .catch(err => alert("❌ Gagal OCR: " + err.message));
-  };
-  reader.readAsDataURL(file);
+    .catch((err) => {
+      document.getElementById("ocrResult").value = "❌ Gagal OCR: " + err.message;
+    });
 }
 
+// 🧠 AI Parsing pintar: OCR ➝ JSON format soal
 function parseOCRToEditor() {
   const raw = document.getElementById("ocrResult").value;
-  const lines = raw.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
-
+  const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
   const soalList = [];
-  let current = null;
-  let options = [];
 
-  lines.forEach((line) => {
+  let current = null;
+  let stage = 0; // 0: init, 1: soal, 2-5: opsi, 6: kunci
+  let nomor = 1;
+
+  lines.forEach(line => {
     if (/^Soal\s*\d+/i.test(line)) {
-      if (current && options.length === 4) {
-        soalList.push({ ...current });
-      }
+      if (current) soalList.push(current);
       current = { question: "", a: "", b: "", c: "", d: "", correct: "a" };
-      options = [];
-    } else if (!current.question) {
+      stage = 1;
+    } else if (stage === 1) {
       current.question = line;
-    } else if (options.length < 4) {
-      const index = ["a", "b", "c", "d"][options.length];
-      current[index] = line;
-      options.push(line);
-    } else if (/^[ABCDabcd]$/.test(line)) {
+      stage = 2;
+    } else if (stage >= 2 && stage <= 5) {
+      const opt = ["a", "b", "c", "d"][stage - 2];
+      current[opt] = line;
+      stage++;
+    } else if (stage > 5 && /^[abcdABCD]$/.test(line)) {
       current.correct = line.toLowerCase();
+      stage = 0;
     }
   });
 
-  if (current && options.length === 4) soalList.push(current);
-
+  if (current) soalList.push(current);
   renderSoalEditor(soalList);
 }
 
+// 🔁 Tampilkan hasil soal dalam editor
 function renderSoalEditor(soalList) {
   const container = document.getElementById("daftarSoal");
   container.innerHTML = "";
@@ -104,37 +116,5 @@ function renderSoalEditor(soalList) {
       </select>
     `;
     container.appendChild(wrap);
-  });
-}
-
-function simpanSemuaSoalKeFirebase() {
-  const path = getPath(); // contoh: SD/kelas_1/IPA/semester_1/versi_1
-  const soalEls = document.querySelectorAll(".soal-item");
-  const soalObj = {};
-
-  soalEls.forEach((el, i) => {
-    const question = el.querySelector(".question").value.trim();
-    const a = el.querySelector(".a").value.trim();
-    const b = el.querySelector(".b").value.trim();
-    const c = el.querySelector(".c").value.trim();
-    const d = el.querySelector(".d").value.trim();
-    const correct = el.querySelector(".correct").value;
-
-    soalObj[i + 1] = { question, a, b, c, d, correct };
-  });
-
-  db.ref(`${path}/soal`).set(soalObj)
-    .then(() => alert("✅ Soal berhasil disimpan!"))
-    .catch(err => alert("❌ Gagal simpan soal: " + err.message));
-}
-
-function tampilkanSoalTersimpan() {
-  const path = getPath();
-  db.ref(`${path}/soal`).once("value").then(snapshot => {
-    const data = snapshot.val();
-    if (data) {
-      const arr = Object.values(data);
-      renderSoalEditor(arr);
-    }
   });
 }
