@@ -1,4 +1,3 @@
-// ✅ Login check
 function cekLogin() {
   const login = localStorage.getItem('admin_login');
   if (login !== 'true') {
@@ -6,93 +5,93 @@ function cekLogin() {
     window.location.href = 'login.html';
   }
 }
+
 function cekLoginLalu(callback) {
-  if (localStorage.getItem('admin_login') === 'true') {
+  const login = localStorage.getItem('admin_login');
+  if (login === 'true') {
     callback();
   } else {
     alert('Kamu belum login!');
     window.location.href = 'login.html';
   }
 }
+
 function logout() {
   localStorage.removeItem('admin_login');
   window.location.href = 'login.html';
 }
 
-// ✅ Load full Firebase structure
-function loadStruktur() {
-  db.ref().once('value', snapshot => {
-    document.getElementById('output').textContent = JSON.stringify(snapshot.val(), null, 2);
+function loadAllKategori() {
+  db.ref().once('value', (snapshot) => {
+    const data = snapshot.val();
+    document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+
+    const jenjangDropdown = document.getElementById('jenjangDropdown');
+    const jenjangDropdown2 = document.getElementById('jenjangDropdown2');
+    jenjangDropdown.innerHTML = '';
+    jenjangDropdown2.innerHTML = '';
+
+    for (const jenjang in data) {
+      const opt1 = document.createElement('option');
+      opt1.value = jenjang;
+      opt1.textContent = jenjang;
+      jenjangDropdown.appendChild(opt1);
+
+      const opt2 = document.createElement('option');
+      opt2.value = jenjang;
+      opt2.textContent = jenjang;
+      jenjangDropdown2.appendChild(opt2);
+    }
   });
 }
 
-// ✅ Add structure
-function tambahStruktur() {
-  const jenjang = document.getElementById('jenjang').value.trim();
-  const mapel = document.getElementById('mapel').value.trim();
-  const kelas = document.getElementById('kelas').value.trim();
-  const semester = document.getElementById('semester').value.trim();
-  const versi = document.getElementById('versi').value.trim();
-
-  if (!jenjang || !mapel || !kelas || !semester || !versi) {
-    alert("Lengkapi semua field dulu!");
-    return;
-  }
-
-  const path = `${jenjang}/${mapel}/${kelas}/${semester}/${versi}`;
-
-  // Gunakan dummy field agar tidak dihapus oleh Firebase
-  db.ref(path).set({
-    "__init": true
-  }).then(() => {
-    alert("✅ Struktur berhasil ditambahkan!");
-    loadStruktur();
-  }).catch((err) => {
-    alert("❌ Gagal menambahkan struktur: " + err.message);
-    console.error(err);
+function tambahJenjang() {
+  const jenjang = document.getElementById('jenjangInput').value.trim();
+  if (!jenjang) return alert('Masukkan jenjang!');
+  db.ref(jenjang).set("init").then(() => {
+    alert('✅ Jenjang ditambahkan!');
+    document.getElementById('jenjangInput').value = '';
+    loadAllKategori();
   });
 }
 
-// ✅ Load kategori list
-function loadKategori() {
-  const drop = document.getElementById('kategoriDeleteDropdown');
-  drop.innerHTML = '';
-  db.ref().once('value')
-    .then(snapshot => {
-      snapshot.forEach(child => {
+function tambahMapel() {
+  const jenjang = document.getElementById('jenjangDropdown').value;
+  const mapel = document.getElementById('mapelInput').value.trim();
+  if (!mapel) return alert('Masukkan mapel!');
+  db.ref(`${jenjang}/${mapel}`).set("init").then(() => {
+    alert('✅ Mapel ditambahkan!');
+    document.getElementById('mapelInput').value = '';
+    loadAllKategori();
+  });
+}
+
+function tambahKelas() {
+  const jenjang = document.getElementById('jenjangDropdown2').value;
+  const mapel = document.getElementById('mapelDropdown').value;
+  const kelas = document.getElementById('kelasInput').value.trim();
+  if (!kelas) return alert('Masukkan kelas!');
+  db.ref(`${jenjang}/${mapel}/${kelas}`).set("init").then(() => {
+    alert('✅ Kelas ditambahkan!');
+    document.getElementById('kelasInput').value = '';
+    loadAllKategori();
+  });
+}
+
+// Populate mapelDropdown saat jenjangDropdown2 berubah
+window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('jenjangDropdown2').addEventListener('change', function () {
+    const jenjang = this.value;
+    db.ref(jenjang).once('value', (snapshot) => {
+      const data = snapshot.val();
+      const mapelDropdown = document.getElementById('mapelDropdown');
+      mapelDropdown.innerHTML = '';
+      for (const mapel in data) {
         const opt = document.createElement('option');
-        opt.text = child.key;
-        opt.value = child.key;
-        drop.appendChild(opt);
-      });
-    })
-    .catch(err => alert("Error loadKategori: " + err.message));
-}
-
-// ✅ Add category
-function tambahKategoriBaru() {
-  const kategori = document.getElementById('kategoriBaru').value.trim();
-  if (!kategori) return alert('Nama kategori kosong');
-  db.ref(kategori).once('value')
-    .then(snapshot => {
-      if (snapshot.exists()) alert('Kategori sudah ada!'); else return db.ref(kategori).set("");
-    })
-    .then(x => {
-      alert('✅ Kategori berhasil ditambahkan!');
-      loadKategori();
-    })
-    .catch(err => alert("Error: " + err.message));
-}
-
-// ✅ Remove category
-function hapusKategori() {
-  const kategori = document.getElementById('kategoriDeleteDropdown').value;
-  if (!confirm(`Yakin hapus kategori "${kategori}"?`)) return;
-  db.ref(kategori).remove()
-    .then(() => {
-      alert('🗑️ Kategori dihapus');
-      loadKategori();
-      loadStruktur();
-    })
-    .catch(err => alert("Error hapusKategori: " + err.message));
-}
+        opt.value = mapel;
+        opt.textContent = mapel;
+        mapelDropdown.appendChild(opt);
+      }
+    });
+  });
+});
