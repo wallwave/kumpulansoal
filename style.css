@@ -32,8 +32,3 @@ button {
   cursor:pointer; font-weight:bold; transition:background .3s;
 }
 button:hover { background:#00ffaa; }
-<<<<<<< HEAD
-pre { background:#eee; padding:10px; border-radius:5px; color:#000; }
-=======
-pre { background:#eee; padding:10px; border-radius:5px; color:#000; }
->>>>>>> d401f58bcc05103da0e2073320d046f079a7b1f5
