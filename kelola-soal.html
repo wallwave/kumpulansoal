@@ -4,15 +4,205 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kelola Soal</title>
-  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Base Styles */
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f7fa;
+    }
+    
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #e1e5eb;
+    }
+    
+    .header h2 {
+      margin: 0;
+      color: #2c3e50;
+    }
+    
+    button {
+      padding: 10px 15px;
+      background-color: #3498db;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+    
+    button:hover {
+      background-color: #2980b9;
+      transform: translateY(-2px);
+    }
+    
+    button:disabled {
+      background-color: #95a5a6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .form {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+    
+    .form h3 {
+      margin-top: 0;
+      color: #34495e;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+    }
+    
+    textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-family: 'Courier New', monospace;
+      resize: vertical;
+      min-height: 100px;
+    }
+    
+    input[type="file"] {
+      margin-bottom: 15px;
+    }
+    
+    #ocrPreview {
+      max-width: 100%;
+      height: auto;
+      border: 1px solid #eee;
+      border-radius: 5px;
+      margin: 10px 0;
+      display: none;
+    }
+    
+    .scrollable-box {
+      max-height: 500px;
+      overflow-y: auto;
+      padding: 10px;
+      border: 1px solid #eee;
+      border-radius: 5px;
+      background-color: #fafafa;
+    }
+    
+    /* Question Item Styles */
+    .soal-item {
+      padding: 15px;
+      margin-bottom: 15px;
+      border: 1px solid #e1e5eb;
+      border-radius: 6px;
+      background-color: white;
+      transition: all 0.3s ease;
+    }
+    
+    .soal-item:hover {
+      box-shadow: 0 3px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .soal-item h4 {
+      margin-top: 0;
+      color: #3498db;
+    }
+    
+    .option-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin: 15px 0;
+    }
+    
+    .option-grid label {
+      display: block;
+      margin-bottom: 8px;
+    }
+    
+    .option-grid input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    
+    select {
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+      margin-left: 10px;
+    }
+    
+    .btn-remove {
+      background-color: #e74c3c;
+      float: right;
+      padding: 5px 10px;
+      font-size: 14px;
+    }
+    
+    .btn-remove:hover {
+      background-color: #c0392b;
+    }
+    
+    /* Learning Panel */
+    .learning-panel {
+      background-color: #f8f9fa;
+      padding: 15px;
+      border-radius: 6px;
+      margin-top: 20px;
+      border: 1px solid #e1e5eb;
+    }
+    
+    .learning-panel h4 {
+      margin-top: 0;
+      color: #2c3e50;
+    }
+    
+    /* Loading Indicator */
+    .loader {
+      display: none;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #3498db;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin: 10px auto;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .option-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      body {
+        padding: 10px;
+      }
+    }
+  </style>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script src="firebase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
-  <script src="ocr-ai-handler.js" defer></script>
-  <script src="kelola-soal.js" defer></script>
 </head>
-<body onload="cekLogin(); initKelolaSoal();">
+<body onload="initApp();">
 
   <div class="header">
     <h2>🧾 Kelola Soal</h2>
@@ -23,29 +213,543 @@
   <div class="form">
     <h3>📥 Upload Gambar Soal</h3>
     <input type="file" id="uploadSoalGambar" accept="image/*">
-    <img id="ocrPreview" src="" alt="Preview" style="max-width: 100%; margin-top: 10px;" />
+    <img id="ocrPreview" src="" alt="Preview">
+    <div class="loader" id="ocrLoader"></div>
     <button id="btnMulaiScan">🔍 Mulai Scan OCR</button>
   </div>
 
   <!-- Hasil OCR Mentah -->
   <div class="form">
     <h3>📄 Hasil Scan OCR (Teks Mentah)</h3>
-    <textarea id="ocrResult" rows="10" style="width:100%; font-family:monospace;"></textarea>
+    <textarea id="ocrResult" rows="10" placeholder="Teks hasil OCR akan muncul di sini..."></textarea>
     <button id="btnParseOCR">⚙️ Parse ke Format JSON Soal</button>
+    <div class="loader" id="parseLoader"></div>
   </div>
 
   <!-- JSON Parsing Preview -->
   <div class="form">
     <h3>🧠 JSON Parsing Preview (Editable)</h3>
-    <textarea id="jsonResult" rows="10" style="width:100%; font-family:monospace;"></textarea>
+    <textarea id="jsonResult" rows="10" placeholder="Hasil parsing JSON akan muncul di sini..."></textarea>
   </div>
 
   <!-- Editor Soal -->
   <div class="form">
-    <h3>📋 Daftar Soal Editor (Edit Manual Jika Perlu)</h3>
-    <div id="daftarSoal" class="scrollable-box"></div>
-    <button id="btnSimpanSoal">🚀 Simpan Semua ke Firebase</button>
+    <h3>📋 Daftar Soal Editor</h3>
+    <div id="daftarSoal" class="scrollable-box">
+      <p id="emptyState">Belum ada soal. Upload gambar atau tambahkan soal manual.</p>
+    </div>
+    <div style="margin-top: 20px;">
+      <button id="btnTambahSoal" style="background: #2ecc71;">➕ Tambah Soal Manual</button>
+      <button id="btnSimpanSoal" style="float: right;">🚀 Simpan ke Firebase</button>
+    </div>
+    
+    <!-- AI Learning Panel -->
+    <div class="learning-panel" id="learningStats">
+      <h4>📊 Statistik Pembelajaran AI</h4>
+      <p>Total diproses: <span id="totalProcessed">0</span></p>
+      <p>Akurasi: <span id="accuracy">0</span>%</p>
+    </div>
   </div>
 
+  <script>
+    // ========================
+    // Firebase Configuration
+    // ========================
+    let db;
+    let currentPath = "";
+    let currentSoalSet = [];
+    let learningDB = {
+      patterns: {
+        question: [
+          /^(\d+)\.\.(.+)/,      // 1..Question
+          /^(\d+)\)(.+)/,         // 1) Question
+          /^(\d+)\.(.+)/,         // 1. Question
+          /^(\d+)\s(.+)/          // 1 Question
+        ],
+        option: [
+          /^([a-d])[\.\)]\s*(.+)/i,  // a. Option
+          /^\.\s*(.+)/,              // . Option
+          /^([a-d])\s*(.+)/i         // a Option
+        ],
+        correct: [
+          /€/,                     // Euro symbol marker
+          /√/,                     // Checkmark
+          /jawaban\s*:\s*([a-d])/i, // Jawaban: a
+          /kunci\s*:\s*([a-d])/i    // Kunci: b
+        ]
+      },
+      stats: {
+        totalProcessed: 0,
+        accuracy: 0,
+        correctionCount: 0
+      }
+    };
+
+    // ========================
+    // Initialization
+    // ========================
+    function initApp() {
+      // Initialize Firebase
+      if (firebase.apps.length === 0) {
+        firebase.initializeApp(firebaseConfig);
+      }
+      db = firebase.database();
+      
+      // Check login
+      checkLogin();
+      
+      // Load learning data
+      loadLearningDB();
+      
+      // Initialize UI components
+      initUI();
+      
+      // Get path from URL
+      currentPath = getPathFromURL();
+      if (!currentPath) {
+        alert('Path tidak ditemukan! Kembali ke halaman utama.');
+        window.location.href = 'index.html';
+        return;
+      }
+      
+      // Load questions from Firebase
+      loadQuestionsFromFirebase();
+    }
+
+    function loadLearningDB() {
+      const savedData = localStorage.getItem('ocrLearningDB');
+      if (savedData) {
+        learningDB = JSON.parse(savedData);
+        updateLearningStats();
+      }
+    }
+
+    function saveLearningDB() {
+      localStorage.setItem('ocrLearningDB', JSON.stringify(learningDB));
+    }
+
+    function updateLearningStats() {
+      document.getElementById('totalProcessed').textContent = learningDB.stats.totalProcessed;
+      document.getElementById('accuracy').textContent = (learningDB.stats.accuracy * 100).toFixed(1);
+    }
+
+    // ========================
+    // Authentication
+    // ========================
+    function checkLogin() {
+      if (localStorage.getItem('admin_login') !== 'true') {
+        alert('Anda belum login!');
+        window.location.href = 'login.html';
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('admin_login');
+      window.location.href = 'login.html';
+    }
+
+    // ========================
+    // URL Handling
+    // ========================
+    function getPathFromURL() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('path') || "";
+    }
+
+    // ========================
+    // UI Initialization
+    // ========================
+    function initUI() {
+      // File upload handler
+      document.getElementById('uploadSoalGambar').addEventListener('change', function(e) {
+        if (e.target.files.length === 0) {
+          document.getElementById('ocrPreview').style.display = 'none';
+          return;
+        }
+        
+        const file = e.target.files[0];
+        document.getElementById('ocrPreview').src = URL.createObjectURL(file);
+        document.getElementById('ocrPreview').style.display = 'block';
+      });
+
+      // OCR Scan button
+      document.getElementById('btnMulaiScan').addEventListener('click', startOCRScan);
+
+      // Parse button
+      document.getElementById('btnParseOCR').addEventListener('click', parseOCRText);
+
+      // Add question button
+      document.getElementById('btnTambahSoal').addEventListener('click', addNewQuestion);
+
+      // Save button
+      document.getElementById('btnSimpanSoal').addEventListener('click', saveQuestionsToFirebase);
+    }
+
+    // ========================
+    // OCR Processing
+    // ========================
+    async function startOCRScan() {
+      const fileInput = document.getElementById('uploadSoalGambar');
+      if (!fileInput.files || fileInput.files.length === 0) {
+        alert('Pilih gambar soal terlebih dahulu!');
+        return;
+      }
+
+      const file = fileInput.files[0];
+      const btn = document.getElementById('btnMulaiScan');
+      const loader = document.getElementById('ocrLoader');
+
+      btn.disabled = true;
+      btn.textContent = 'Memindai...';
+      loader.style.display = 'block';
+
+      try {
+        const { data: { text } } = await Tesseract.recognize(
+          file,
+          'ind',
+          { 
+            logger: m => console.log(m),
+            preserve_interword_spaces: true
+          }
+        );
+        
+        document.getElementById('ocrResult').value = text;
+        learningDB.stats.totalProcessed++;
+        saveLearningDB();
+        updateLearningStats();
+        
+      } catch (err) {
+        alert('OCR gagal: ' + err.message);
+        console.error(err);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🔍 Mulai Scan OCR';
+        loader.style.display = 'none';
+      }
+    }
+
+    // ========================
+    // Question Parsing
+    // ========================
+    function parseOCRText() {
+      const rawText = document.getElementById('ocrResult').value.trim();
+      if (!rawText) {
+        alert('Teks OCR kosong, lakukan scan dulu!');
+        return;
+      }
+
+      const btn = document.getElementById('btnParseOCR');
+      const loader = document.getElementById('parseLoader');
+
+      btn.disabled = true;
+      btn.textContent = 'Memproses...';
+      loader.style.display = 'block';
+
+      try {
+        const parsedData = parseQuestionsWithAI(rawText);
+        document.getElementById('jsonResult').value = JSON.stringify(parsedData, null, 2);
+        
+        // Convert to array format for Firebase
+        currentSoalSet = Object.values(parsedData.versi_1);
+        renderQuestionEditor();
+        
+      } catch (err) {
+        alert('Gagal parse soal: ' + err.message);
+        console.error(err);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '⚙️ Parse ke Format JSON Soal';
+        loader.style.display = 'none';
+      }
+    }
+
+    function parseQuestionsWithAI(rawText) {
+      const lines = rawText.split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
+
+      const questions = { versi_1: {} };
+      let currentQuestion = null;
+      let qIndex = 1;
+      let optionBuffer = [];
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        
+        // Check for question patterns
+        const qMatch = matchPattern(line, learningDB.patterns.question);
+        if (qMatch) {
+          if (currentQuestion) {
+            processQuestionOptions(currentQuestion, optionBuffer);
+            questions.versi_1[qIndex] = currentQuestion;
+            optionBuffer = [];
+            qIndex++;
+          }
+          
+          currentQuestion = {
+            question: cleanQuestionText(qMatch[2]),
+            a: '', b: '', c: '', d: '',
+            correct: ''
+          };
+          continue;
+        }
+        
+        // Check for option patterns
+        const oMatch = matchPattern(line, learningDB.patterns.option);
+        if (oMatch && currentQuestion) {
+          optionBuffer.push(line);
+          continue;
+        }
+        
+        // Check for correct answer markers
+        const cMatch = matchPattern(line, learningDB.patterns.correct);
+        if (cMatch && currentQuestion) {
+          if (cMatch[1]) {
+            currentQuestion.correct = cMatch[1].toLowerCase();
+          } else {
+            const markedOption = findMarkedOption(optionBuffer);
+            if (markedOption) currentQuestion.correct = markedOption;
+          }
+          continue;
+        }
+        
+        // If no pattern matched, add to current option buffer
+        if (currentQuestion) optionBuffer.push(line);
+      }
+
+      // Process the last question
+      if (currentQuestion) {
+        processQuestionOptions(currentQuestion, optionBuffer);
+        questions.versi_1[qIndex] = currentQuestion;
+      }
+
+      return questions;
+    }
+
+    // Helper: Match text against multiple patterns
+    function matchPattern(text, patterns) {
+      for (const pattern of patterns) {
+        const match = text.match(pattern);
+        if (match) return match;
+      }
+      return null;
+    }
+
+    // Helper: Clean question text
+    function cleanQuestionText(text) {
+      return text
+        .replace(/^\s*[-.)]\s*/, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    // Helper: Find which option contains correct answer marker
+    function findMarkedOption(buffer) {
+      for (let i = 0; i < buffer.length; i++) {
+        if (buffer[i].match(/[€√]/)) {
+          const optionMatch = buffer[i].match(/^([a-d])/i);
+          if (optionMatch) return optionMatch[1].toLowerCase();
+          
+          if (i === 0) return 'a';
+          if (i === 1) return 'b';
+          if (i === 2) return 'c';
+          if (i === 3) return 'd';
+        }
+      }
+      return null;
+    }
+
+    // Process question options from buffer
+    function processQuestionOptions(question, buffer) {
+      const options = { a: [], b: [], c: [], d: [] };
+      let currentOption = null;
+
+      buffer.forEach(line => {
+        // Check if line starts a new option
+        const oMatch = matchPattern(line, learningDB.patterns.option);
+        if (oMatch) {
+          currentOption = oMatch[1] ? oMatch[1].toLowerCase() : 
+            (!options.a.length ? 'a' :
+             !options.b.length ? 'b' :
+             !options.c.length ? 'c' : 'd');
+          
+          const optionText = oMatch[2] || oMatch[1] || line;
+          options[currentOption].push(cleanOptionText(optionText));
+          return;
+        }
+        
+        // Continue adding to current option
+        if (currentOption) {
+          options[currentOption].push(cleanOptionText(line));
+        }
+      });
+
+      // Join multi-line options and clean up
+      ['a', 'b', 'c', 'd'].forEach(opt => {
+        question[opt] = options[opt].join(' ').trim();
+      });
+      
+      // If no correct answer detected, make an educated guess
+      if (!question.correct) {
+        question.correct = guessCorrectAnswer(question);
+      }
+    }
+
+    // Helper: Clean option text
+    function cleanOptionText(text) {
+      return text
+        .replace(/[€√]/g, '')
+        .replace(/^\s*[-.)]\s*/, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    // Educated guess for correct answer
+    function guessCorrectAnswer(question) {
+      // Check for any remaining markers
+      for (const opt of ['a', 'b', 'c', 'd']) {
+        if (question[opt].match(/[€√]/)) return opt;
+      }
+      
+      // Check for longest option (common in tests)
+      const options = ['a', 'b', 'c', 'd']
+        .map(opt => ({ opt, length: question[opt].length }))
+        .sort((a, b) => b.length - a.length);
+      
+      return options[0].opt;
+    }
+
+    // ========================
+    // Question Management
+    // ========================
+    function loadQuestionsFromFirebase() {
+      const ref = db.ref(currentPath + "/soal");
+      ref.once('value').then(snapshot => {
+        currentSoalSet = snapshot.val() || [];
+        renderQuestionEditor();
+      }).catch(err => {
+        console.error("Gagal memuat soal:", err);
+      });
+    }
+
+    function renderQuestionEditor() {
+      const container = document.getElementById('daftarSoal');
+      const emptyState = document.getElementById('emptyState');
+      
+      container.innerHTML = '';
+      
+      if (!currentSoalSet || currentSoalSet.length === 0) {
+        emptyState.style.display = 'block';
+        return;
+      }
+      
+      emptyState.style.display = 'none';
+      
+      currentSoalSet.forEach((q, index) => {
+        const questionDiv = document.createElement('div');
+        questionDiv.className = 'soal-item';
+        questionDiv.innerHTML = `
+          <h4>Soal ${index + 1}</h4>
+          <textarea data-index="${index}" data-field="question" 
+            style="width:100%; margin-bottom:10px;">${q.question || ''}</textarea>
+          
+          <div class="option-grid">
+            <label>A: <input type="text" data-index="${index}" data-field="a" value="${q.a || ''}"></label>
+            <label>B: <input type="text" data-index="${index}" data-field="b" value="${q.b || ''}"></label>
+            <label>C: <input type="text" data-index="${index}" data-field="c" value="${q.c || ''}"></label>
+            <label>D: <input type="text" data-index="${index}" data-field="d" value="${q.d || ''}"></label>
+          </div>
+          
+          <div style="margin-top:10px;">
+            <label>Jawaban Benar:
+              <select data-index="${index}" data-field="correct">
+                <option value="a" ${q.correct === 'a' ? 'selected' : ''}>A</option>
+                <option value="b" ${q.correct === 'b' ? 'selected' : ''}>B</option>
+                <option value="c" ${q.correct === 'c' ? 'selected' : ''}>C</option>
+                <option value="d" ${q.correct === 'd' ? 'selected' : ''}>D</option>
+              </select>
+            </label>
+            <button class="btn-remove" data-index="${index}">🗑 Hapus</button>
+          </div>
+          <hr>
+        `;
+        
+        container.appendChild(questionDiv);
+      });
+
+      // Add event listeners for real-time updates
+      container.querySelectorAll('textarea, input, select').forEach(el => {
+        el.addEventListener('input', updateQuestionFromEditor);
+      });
+
+      // Add event listeners for remove buttons
+      container.querySelectorAll('.btn-remove').forEach(btn => {
+        btn.addEventListener('click', function() {
+          if (confirm('Hapus soal ini?')) {
+            currentSoalSet.splice(parseInt(this.dataset.index), 1);
+            renderQuestionEditor();
+          }
+        });
+      });
+    }
+
+    function updateQuestionFromEditor(e) {
+      const index = e.target.dataset.index;
+      const field = e.target.dataset.field;
+      const value = e.target.value;
+      
+      if (index && field && currentSoalSet[index]) {
+        currentSoalSet[index][field] = value;
+      }
+    }
+
+    function addNewQuestion() {
+      currentSoalSet.push({
+        question: "Pertanyaan baru?",
+        a: "Opsi A",
+        b: "Opsi B",
+        c: "Opsi C",
+        d: "Opsi D",
+        correct: "a"
+      });
+      renderQuestionEditor();
+      document.getElementById('daftarSoal').scrollTop = document.getElementById('daftarSoal').scrollHeight;
+    }
+
+    // ========================
+    // Firebase Integration
+    // ========================
+    function saveQuestionsToFirebase() {
+      if (!currentSoalSet || currentSoalSet.length === 0) {
+        alert('Belum ada soal untuk disimpan.');
+        return;
+      }
+      
+      // Simple validation
+      for (let i = 0; i < currentSoalSet.length; i++) {
+        const s = currentSoalSet[i];
+        if (!s.question || !s.a || !s.b || !s.c || !s.d || !s.correct) {
+          alert(`Soal nomor ${i+1} belum lengkap, cek kembali.`);
+          return;
+        }
+      }
+
+      const btn = document.getElementById('btnSimpanSoal');
+      btn.disabled = true;
+      btn.textContent = 'Menyimpan...';
+
+      db.ref(currentPath + "/soal").set(currentSoalSet)
+        .then(() => {
+          alert('✅ Semua soal berhasil disimpan!');
+        })
+        .catch(err => {
+          alert('❌ Gagal menyimpan soal: ' + err.message);
+        })
+        .finally(() => {
+          btn.disabled = false;
+          btn.textContent = '🚀 Simpan ke Firebase';
+        });
+    }
+  </script>
 </body>
 </html>
