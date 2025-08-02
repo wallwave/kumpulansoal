@@ -3,7 +3,7 @@ const $ = id => document.getElementById(id);
 
 let selectedFile = null;
 
-// Pilih gambar
+// Pilih gambar soal
 $('uploadSoalGambar').addEventListener('change', e => {
   if (e.target.files.length === 0) {
     selectedFile = null;
@@ -13,13 +13,12 @@ $('uploadSoalGambar').addEventListener('change', e => {
     return;
   }
   selectedFile = e.target.files[0];
-  const url = URL.createObjectURL(selectedFile);
-  $('ocrPreview').src = url;
+  $('ocrPreview').src = URL.createObjectURL(selectedFile);
   $('ocrResult').value = '';
   $('jsonResult').value = '';
 });
 
-// Mulai scan OCR dengan Tesseract
+// Mulai scan OCR pake Tesseract.js
 $('btnMulaiScan').addEventListener('click', () => {
   if (!selectedFile) {
     alert('Pilih gambar soal terlebih dahulu!');
@@ -41,7 +40,7 @@ $('btnMulaiScan').addEventListener('click', () => {
     });
 });
 
-// Parse teks OCR ke JSON via API lo (api/parse.js)
+// Parse OCR text ke JSON soal via API
 $('btnParseOCR').addEventListener('click', async () => {
   const rawText = $('ocrResult').value.trim();
   if (!rawText) {
@@ -56,7 +55,7 @@ $('btnParseOCR').addEventListener('click', async () => {
     const res = await fetch('/api/parse', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: rawText })
+      body: JSON.stringify({ text: rawText }),
     });
 
     if (!res.ok) {
@@ -66,13 +65,19 @@ $('btnParseOCR').addEventListener('click', async () => {
     }
 
     const json = await res.json();
-    // Tampilkan hasil JSON di textarea
-    $('jsonResult').value = JSON.stringify(json, null, 2);
 
-    // Update soalArray di kelola-soal.js
-    if (window.soalArray !== undefined) {
-      window.soalArray = json;
-    }
+    // Transform array jadi object versi_1
+    const soalObject = { versi_1: {} };
+    json.forEach((item, index) => {
+      soalObject.versi_1[(index + 1).toString()] = item;
+    });
+
+    // Update textarea JSON result
+    $('jsonResult').value = JSON.stringify(soalObject, null, 2);
+
+    // Simpan ke global soalArray untuk kelola-soal.js
+    window.soalArray = soalObject;
+
   } catch (e) {
     alert('Error saat parsing OCR ke JSON: ' + e.message);
   } finally {
