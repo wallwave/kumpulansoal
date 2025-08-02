@@ -38,17 +38,18 @@ Sekarang ubah teks berikut jadi format seperti itu:
 `;
 
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.openapi}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "gpt-4o",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.3,
-    }),
-  });
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.apenapi}`, // ✅ pakai nama variabel sesuai
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    model: "gpt-4o",
+    messages: [{ role: "user", content: prompt }],
+    temperature: 0.3,
+  }),
+});
+
 
   const data = await res.json();
   const answer = data.choices?.[0]?.message?.content?.trim();
