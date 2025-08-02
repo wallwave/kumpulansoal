@@ -1,16 +1,195 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>📚 Admin Panel Kumpulan Soal</title>
-  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* Base Styles */
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f7fa;
+    }
+    
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #e1e5eb;
+    }
+    
+    .header h2 {
+      margin: 0;
+      color: #2c3e50;
+    }
+    
+    button {
+      padding: 10px 15px;
+      background-color: #3498db;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+    
+    button:hover {
+      background-color: #2980b9;
+      transform: translateY(-2px);
+    }
+    
+    button:disabled {
+      background-color: #95a5a6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .form {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+    
+    .form h3 {
+      margin-top: 0;
+      color: #34495e;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+    }
+    
+    textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-family: 'Courier New', monospace;
+      resize: vertical;
+      min-height: 100px;
+    }
+    
+    input[type="file"] {
+      margin-bottom: 15px;
+    }
+    
+    #ocrPreview {
+      max-width: 100%;
+      height: auto;
+      border: 1px solid #eee;
+      border-radius: 5px;
+      margin: 10px 0;
+      display: none;
+    }
+    
+    .scrollable-box {
+      max-height: 500px;
+      overflow-y: auto;
+      padding: 10px;
+      border: 1px solid #eee;
+      border-radius: 5px;
+      background-color: #fafafa;
+    }
+    
+    /* Question Item Styles */
+    .soal-item {
+      padding: 15px;
+      margin-bottom: 15px;
+      border: 1px solid #e1e5eb;
+      border-radius: 6px;
+      background-color: white;
+      transition: all 0.3s ease;
+    }
+    
+    .soal-item:hover {
+      box-shadow: 0 3px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .soal-item h4 {
+      margin-top: 0;
+      color: #3498db;
+    }
+    
+    .option-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin: 15px 0;
+    }
+    
+    .option-grid label {
+      display: block;
+      margin-bottom: 8px;
+    }
+    
+    .option-grid input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    
+    select {
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+      margin-left: 10px;
+    }
+    
+    .btn-remove {
+      background-color: #e74c3c;
+      float: right;
+      padding: 5px 10px;
+      font-size: 14px;
+    }
+    
+    .btn-remove:hover {
+      background-color: #c0392b;
+    }
+    
+    /* Loading Indicator */
+    .loader {
+      display: none;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #3498db;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin: 10px auto;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .option-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      body {
+        padding: 10px;
+      }
+    }
+  </style>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script src="firebase-config.js"></script>
-  <script defer src="script.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
 </head>
-<body onload="cekLogin(); loadAllKategori();">
+<body onload="initApp();">
+
   <div class="header">
     <h2>🧠 Admin Panel Kumpulan Soal</h2>
     <button onclick="logout()">Logout</button>
@@ -70,5 +249,707 @@
     <h3>📂 Struktur Tersimpan</h3>
     <pre id="output" style="background:#eee;padding:10px;border-radius:5px;"></pre>
   </div>
+
+  <!-- OCR Section -->
+  <div class="form">
+    <h3>📥 Upload Gambar Soal</h3>
+    <input type="file" id="uploadSoalGambar" accept="image/*">
+    <img id="ocrPreview" src="" alt="Preview">
+    <div class="loader" id="imageLoader"></div>
+    <button id="btnMulaiScan">🔍 Mulai Scan OCR</button>
+  </div>
+
+  <div class="form">
+    <h3>📄 Hasil Scan OCR (Teks Mentah)</h3>
+    <textarea id="ocrResult" rows="10" placeholder="Teks hasil OCR akan muncul di sini..."></textarea>
+    <div class="loader" id="ocrLoader"></div>
+    <button id="btnParseOCR">⚙️ Parse ke Format JSON Soal</button>
+  </div>
+
+  <div class="form">
+    <h3>🧠 JSON Parsing Preview (Editable)</h3>
+    <textarea id="jsonResult" rows="10" placeholder="Hasil parsing JSON akan muncul di sini..."></textarea>
+  </div>
+
+  <div class="form">
+    <h3>📋 Daftar Soal Editor</h3>
+    <div id="daftarSoal" class="scrollable-box">
+      <p id="emptyState">Belum ada soal. Upload gambar atau tambahkan soal manual.</p>
+    </div>
+    <div style="margin-top: 20px;">
+      <button id="btnTambahSoal" style="background: #2ecc71;">➕ Tambah Soal Manual</button>
+      <button id="btnSimpanSoal" style="float: right;">🚀 Simpan ke Firebase</button>
+    </div>
+  </div>
+
+  <script>
+    // ========================
+    // Firebase Configuration
+    // ========================
+    // Gunakan db dari firebase-config.js
+    if (typeof db === 'undefined') {
+      alert('Error: Firebase not initialized. Check firebase-config.js');
+    }
+
+    // ========================
+    // Global Variables
+    // ========================
+    let currentPath = "";
+    let currentSoalSet = [];
+    let learningDB = {
+      patterns: {
+        question: [
+          /^(\d+)\.\.(.+)/,
+          /^(\d+)\)(.+)/,
+          /^(\d+)\.(.+)/,
+          /^(\d+)\s(.+)/
+        ],
+        option: [
+          /^([a-d])[\.\)]\s*(.+)/i,
+          /^\.\s*(.+)/,
+          /^([a-d])\s*(.+)/i
+        ],
+        correct: [
+          /€/,
+          /√/,
+          /jawaban\s*:\s*([a-d])/i,
+          /kunci\s*:\s*([a-d])/i
+        ]
+      },
+      stats: {
+        totalProcessed: 0,
+        accuracy: 0,
+        correctionCount: 0
+      }
+    };
+
+    // ========================
+    // Authentication
+    // ========================
+    function cekLogin() {
+      if (localStorage.getItem('admin_login') !== 'true') {
+        alert('Kamu belum login!');
+        window.location.href = 'login.html';
+      }
+    }
+
+    function cekLoginLalu(callback) {
+      if (localStorage.getItem('admin_login') === 'true') {
+        callback();
+      } else {
+        alert('Kamu belum login!');
+        window.location.href = 'login.html';
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('admin_login');
+      window.location.href = 'login.html';
+    }
+
+    // ========================
+    // CRUD Operations
+    // ========================
+    function tambahJenjang() {
+      const jenjang = document.getElementById('jenjangInput').value.trim();
+      if (!jenjang) return alert('⚠ Isi jenjang dulu.');
+      db.ref(jenjang).set(true).then(() => {
+        alert(`✅ Jenjang '${jenjang}' ditambahkan!`);
+        document.getElementById('jenjangInput').value = '';
+        loadAllKategori();
+      });
+    }
+
+    function tambahKelas() {
+      const jenjang = document.getElementById('jenjangDropdown').value;
+      const kelas = document.getElementById('kelasInput').value.trim();
+      if (!jenjang || !kelas) return alert('⚠ Pilih jenjang dan isi kelas.');
+      db.ref(`${jenjang}/${kelas}`).set(true).then(() => {
+        alert(`✅ Kelas '${kelas}' ditambahkan ke '${jenjang}'`);
+        document.getElementById('kelasInput').value = '';
+        loadAllKategori();
+      });
+    }
+
+    function tambahMapel() {
+      const j = document.getElementById('jenjangDropdown2').value;
+      const k = document.getElementById('kelasDropdown').value;
+      const m = document.getElementById('mapelInput').value.trim();
+      if (!j || !k || !m) return alert('⚠ Lengkapi jenjang, kelas, dan mapel.');
+      db.ref(`${j}/${k}/${m}`).set(true).then(() => {
+        alert(`✅ Mapel '${m}' ditambahkan!`);
+        document.getElementById('mapelInput').value = '';
+        loadAllKategori();
+      });
+    }
+
+    function tambahSemester() {
+      const j = document.getElementById('jenjangDropdown3').value;
+      const k = document.getElementById('kelasDropdown2').value;
+      const m = document.getElementById('mapelDropdown').value;
+      const s = document.getElementById('semesterInput').value.trim();
+      if (!j || !k || !m || !s) return alert('⚠ Lengkapi semua field.');
+      db.ref(`${j}/${k}/${m}/${s}`).set(true).then(() => {
+        alert(`✅ Semester '${s}' ditambahkan!`);
+        document.getElementById('semesterInput').value = '';
+        loadAllKategori();
+      });
+    }
+
+    function tambahVersi() {
+      const j = document.getElementById('jenjangDropdown4').value;
+      const k = document.getElementById('kelasDropdown3').value;
+      const m = document.getElementById('mapelDropdown2').value;
+      const s = document.getElementById('semesterDropdown').value;
+      const v = document.getElementById('versiInput').value.trim();
+      if (!j || !k || !m || !s || !v) return alert('⚠ Lengkapi semua field.');
+      db.ref(`${j}/${k}/${m}/${s}/${v}`).set(true).then(() => {
+        alert(`✅ Versi '${v}' ditambahkan!`);
+        document.getElementById('versiInput').value = '';
+        loadAllKategori();
+      });
+    }
+
+    // ========================
+    // Navigation
+    // ========================
+    function isKelolaSoalReady() {
+      return ['jenjangManage', 'kelasManage', 'mapelManage', 'semesterManage', 'versiManage']
+        .every(id => document.getElementById(id).value !== '');
+    }
+
+    function navigateToKelolaSoal() {
+      if (!isKelolaSoalReady()) {
+        alert('Lengkapi semua dropdown terlebih dahulu!');
+        return;
+      }
+      const path = [
+        document.getElementById('jenjangManage').value,
+        document.getElementById('kelasManage').value,
+        document.getElementById('mapelManage').value,
+        document.getElementById('semesterManage').value,
+        document.getElementById('versiManage').value
+      ].join('/');
+      window.location.href = `kelola-soal.html?path=${encodeURIComponent(path)}`;
+    }
+
+    // ========================
+    // Data Loading
+    // ========================
+    function loadAllKategori() {
+      db.ref().once('value').then(snapshot => {
+        const data = snapshot.val() || {};
+        const jenjangKeys = Object.keys(data);
+
+        const dropdowns = [
+          'jenjangDropdown', 'jenjangDropdown2', 'jenjangDropdown3',
+          'jenjangDropdown4', 'jenjangManage'
+        ];
+
+        dropdowns.forEach(id => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.innerHTML = '<option value="">--Pilih Jenjang--</option>';
+          jenjangKeys.forEach(key => {
+            const opt = document.createElement('option');
+            opt.value = key;
+            opt.textContent = key;
+            el.appendChild(opt);
+          });
+        });
+
+        document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+      });
+    }
+
+    function loadChildDropdown(path, dropdownId) {
+      const el = document.getElementById(dropdownId);
+      if (!el) return;
+      el.innerHTML = '<option value="">--Pilih--</option>';
+
+      db.ref(path).once('value').then(snapshot => {
+        const data = snapshot.val();
+        if (!data) return;
+        Object.keys(data).forEach(key => {
+          const opt = document.createElement('option');
+          opt.value = key;
+          opt.textContent = key;
+          el.appendChild(opt);
+        });
+      });
+    }
+
+    // ========================
+    // OCR Processing
+    // ========================
+    function setupOCR() {
+      // File upload handler
+      document.getElementById('uploadSoalGambar').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) {
+          document.getElementById('ocrPreview').style.display = 'none';
+          return;
+        }
+        
+        const preview = document.getElementById('ocrPreview');
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+          preview.src = e.target.result;
+          preview.style.display = 'block';
+        }
+        
+        reader.readAsDataURL(file);
+      });
+
+      // OCR Scan button
+      document.getElementById('btnMulaiScan').addEventListener('click', startOCRScan);
+
+      // Parse button
+      document.getElementById('btnParseOCR').addEventListener('click', parseOCRText);
+    }
+
+    async function startOCRScan() {
+      const fileInput = document.getElementById('uploadSoalGambar');
+      if (!fileInput.files || fileInput.files.length === 0) {
+        alert('Pilih gambar soal terlebih dahulu!');
+        return;
+      }
+
+      const file = fileInput.files[0];
+      const btn = document.getElementById('btnMulaiScan');
+      const loader = document.getElementById('ocrLoader');
+      const ocrResult = document.getElementById('ocrResult');
+
+      // Show loading state
+      btn.disabled = true;
+      btn.textContent = 'Sedang memindai...';
+      loader.style.display = 'block';
+      ocrResult.value = '';
+
+      try {
+        const { data: { text } } = await Tesseract.recognize(
+          file,
+          'ind',
+          {
+            logger: m => console.log(m),
+            tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,?!()[]{}@#$%^&*_+-=/:;',
+            preserve_interword_spaces: true,
+            tessedit_pageseg_mode: 6
+          }
+        );
+        
+        ocrResult.value = text;
+        learningDB.stats.totalProcessed++;
+        
+      } catch (error) {
+        console.error('OCR Error:', error);
+        alert('Gagal melakukan OCR: ' + error.message);
+        ocrResult.value = 'Error: ' + error.message;
+      } finally {
+        // Reset loading state
+        btn.disabled = false;
+        btn.textContent = '🔍 Mulai Scan OCR';
+        loader.style.display = 'none';
+      }
+    }
+
+    function parseOCRText() {
+      const rawText = document.getElementById('ocrResult').value.trim();
+      if (!rawText) {
+        alert('Teks OCR kosong, lakukan scan dulu!');
+        return;
+      }
+
+      const btn = document.getElementById('btnParseOCR');
+      const loader = document.getElementById('parseLoader');
+
+      btn.disabled = true;
+      btn.textContent = 'Memproses...';
+      loader.style.display = 'block';
+
+      try {
+        const parsedData = parseQuestionsWithAI(rawText);
+        document.getElementById('jsonResult').value = JSON.stringify(parsedData, null, 2);
+        
+        // Convert to array format for Firebase
+        currentSoalSet = Object.values(parsedData.versi_1);
+        renderQuestionEditor();
+        
+      } catch (err) {
+        alert('Gagal parse soal: ' + err.message);
+        console.error(err);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '⚙️ Parse ke Format JSON Soal';
+        loader.style.display = 'none';
+      }
+    }
+
+    function parseQuestionsWithAI(rawText) {
+      const lines = rawText.split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
+
+      const questions = { versi_1: {} };
+      let currentQuestion = null;
+      let qIndex = 1;
+      let optionBuffer = [];
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        
+        // Check for question patterns
+        const qMatch = matchPattern(line, learningDB.patterns.question);
+        if (qMatch) {
+          if (currentQuestion) {
+            processQuestionOptions(currentQuestion, optionBuffer);
+            questions.versi_1[qIndex] = currentQuestion;
+            optionBuffer = [];
+            qIndex++;
+          }
+          
+          currentQuestion = {
+            question: cleanQuestionText(qMatch[2]),
+            a: '', b: '', c: '', d: '',
+            correct: ''
+          };
+          continue;
+        }
+        
+        // Check for option patterns
+        const oMatch = matchPattern(line, learningDB.patterns.option);
+        if (oMatch && currentQuestion) {
+          optionBuffer.push(line);
+          continue;
+        }
+        
+        // Check for correct answer markers
+        const cMatch = matchPattern(line, learningDB.patterns.correct);
+        if (cMatch && currentQuestion) {
+          if (cMatch[1]) {
+            currentQuestion.correct = cMatch[1].toLowerCase();
+          } else {
+            const markedOption = findMarkedOption(optionBuffer);
+            if (markedOption) currentQuestion.correct = markedOption;
+          }
+          continue;
+        }
+        
+        // If no pattern matched, add to current option buffer
+        if (currentQuestion) optionBuffer.push(line);
+      }
+
+      // Process the last question
+      if (currentQuestion) {
+        processQuestionOptions(currentQuestion, optionBuffer);
+        questions.versi_1[qIndex] = currentQuestion;
+      }
+
+      return questions;
+    }
+
+    // Helper: Match text against multiple patterns
+    function matchPattern(text, patterns) {
+      for (const pattern of patterns) {
+        const match = text.match(pattern);
+        if (match) return match;
+      }
+      return null;
+    }
+
+    // Helper: Clean question text
+    function cleanQuestionText(text) {
+      return text
+        .replace(/^\s*[-.)]\s*/, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    // Helper: Find which option contains correct answer marker
+    function findMarkedOption(buffer) {
+      for (let i = 0; i < buffer.length; i++) {
+        if (buffer[i].match(/[€√]/)) {
+          const optionMatch = buffer[i].match(/^([a-d])/i);
+          if (optionMatch) return optionMatch[1].toLowerCase();
+          
+          if (i === 0) return 'a';
+          if (i === 1) return 'b';
+          if (i === 2) return 'c';
+          if (i === 3) return 'd';
+        }
+      }
+      return null;
+    }
+
+    // Process question options from buffer
+    function processQuestionOptions(question, buffer) {
+      const options = { a: [], b: [], c: [], d: [] };
+      let currentOption = null;
+
+      buffer.forEach(line => {
+        // Check if line starts a new option
+        const oMatch = matchPattern(line, learningDB.patterns.option);
+        if (oMatch) {
+          currentOption = oMatch[1] ? oMatch[1].toLowerCase() : 
+            (!options.a.length ? 'a' :
+             !options.b.length ? 'b' :
+             !options.c.length ? 'c' : 'd');
+          
+          const optionText = oMatch[2] || oMatch[1] || line;
+          options[currentOption].push(cleanOptionText(optionText));
+          return;
+        }
+        
+        // Continue adding to current option
+        if (currentOption) {
+          options[currentOption].push(cleanOptionText(line));
+        }
+      });
+
+      // Join multi-line options and clean up
+      ['a', 'b', 'c', 'd'].forEach(opt => {
+        question[opt] = options[opt].join(' ').trim();
+      });
+      
+      // If no correct answer detected, make an educated guess
+      if (!question.correct) {
+        question.correct = guessCorrectAnswer(question);
+      }
+    }
+
+    // Helper: Clean option text
+    function cleanOptionText(text) {
+      return text
+        .replace(/[€√]/g, '')
+        .replace(/^\s*[-.)]\s*/, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    // Educated guess for correct answer
+    function guessCorrectAnswer(question) {
+      // Check for any remaining markers
+      for (const opt of ['a', 'b', 'c', 'd']) {
+        if (question[opt].match(/[€√]/)) return opt;
+      }
+      
+      // Check for longest option (common in tests)
+      const options = ['a', 'b', 'c', 'd']
+        .map(opt => ({ opt, length: question[opt].length }))
+        .sort((a, b) => b.length - a.length);
+      
+      return options[0].opt;
+    }
+
+    // ========================
+    // Question Management
+    // ========================
+    function renderQuestionEditor() {
+      const container = document.getElementById('daftarSoal');
+      const emptyState = document.getElementById('emptyState');
+      
+      container.innerHTML = '';
+      
+      if (!currentSoalSet || currentSoalSet.length === 0) {
+        emptyState.style.display = 'block';
+        return;
+      }
+      
+      emptyState.style.display = 'none';
+      
+      currentSoalSet.forEach((q, index) => {
+        const questionDiv = document.createElement('div');
+        questionDiv.className = 'soal-item';
+        questionDiv.innerHTML = `
+          <h4>Soal ${index + 1}</h4>
+          <textarea data-index="${index}" data-field="question" 
+            style="width:100%; margin-bottom:10px;">${q.question || ''}</textarea>
+          
+          <div class="option-grid">
+            <label>A: <input type="text" data-index="${index}" data-field="a" value="${q.a || ''}"></label>
+            <label>B: <input type="text" data-index="${index}" data-field="b" value="${q.b || ''}"></label>
+            <label>C: <input type="text" data-index="${index}" data-field="c" value="${q.c || ''}"></label>
+            <label>D: <input type="text" data-index="${index}" data-field="d" value="${q.d || ''}"></label>
+          </div>
+          
+          <div style="margin-top:10px;">
+            <label>Jawaban Benar:
+              <select data-index="${index}" data-field="correct">
+                <option value="a" ${q.correct === 'a' ? 'selected' : ''}>A</option>
+                <option value="b" ${q.correct === 'b' ? 'selected' : ''}>B</option>
+                <option value="c" ${q.correct === 'c' ? 'selected' : ''}>C</option>
+                <option value="d" ${q.correct === 'd' ? 'selected' : ''}>D</option>
+              </select>
+            </label>
+            <button class="btn-remove" data-index="${index}">🗑 Hapus</button>
+          </div>
+          <hr>
+        `;
+        
+        container.appendChild(questionDiv);
+      });
+
+      // Add event listeners for real-time updates
+      container.querySelectorAll('textarea, input, select').forEach(el => {
+        el.addEventListener('input', updateQuestionFromEditor);
+      });
+
+      // Add event listeners for remove buttons
+      container.querySelectorAll('.btn-remove').forEach(btn => {
+        btn.addEventListener('click', function() {
+          if (confirm('Hapus soal ini?')) {
+            currentSoalSet.splice(parseInt(this.dataset.index), 1);
+            renderQuestionEditor();
+          }
+        });
+      });
+    }
+
+    function updateQuestionFromEditor(e) {
+      const index = e.target.dataset.index;
+      const field = e.target.dataset.field;
+      const value = e.target.value;
+      
+      if (index && field && currentSoalSet[index]) {
+        currentSoalSet[index][field] = value;
+      }
+    }
+
+    function addNewQuestion() {
+      currentSoalSet.push({
+        question: "Pertanyaan baru?",
+        a: "Opsi A",
+        b: "Opsi B",
+        c: "Opsi C",
+        d: "Opsi D",
+        correct: "a"
+      });
+      renderQuestionEditor();
+      document.getElementById('daftarSoal').scrollTop = document.getElementById('daftarSoal').scrollHeight;
+    }
+
+    function saveQuestionsToFirebase() {
+      if (!currentSoalSet || currentSoalSet.length === 0) {
+        alert('Belum ada soal untuk disimpan.');
+        return;
+      }
+      
+      // Simple validation
+      for (let i = 0; i < currentSoalSet.length; i++) {
+        const s = currentSoalSet[i];
+        if (!s.question || !s.a || !s.b || !s.c || !s.d || !s.correct) {
+          alert(`Soal nomor ${i+1} belum lengkap, cek kembali.`);
+          return;
+        }
+      }
+
+      const btn = document.getElementById('btnSimpanSoal');
+      btn.disabled = true;
+      btn.textContent = 'Menyimpan...';
+
+      db.ref(currentPath + "/soal").set(currentSoalSet)
+        .then(() => {
+          alert('✅ Semua soal berhasil disimpan!');
+        })
+        .catch(err => {
+          alert('❌ Gagal menyimpan soal: ' + err.message);
+        })
+        .finally(() => {
+          btn.disabled = false;
+          btn.textContent = '🚀 Simpan ke Firebase';
+        });
+    }
+
+    // ========================
+    // Initialization
+    // ========================
+    function initApp() {
+      // Check login
+      cekLogin();
+      
+      // Load data
+      loadAllKategori();
+      
+      // Setup dropdown events
+      setupDropdownEvents();
+      
+      // Setup OCR functionality
+      setupOCR();
+      
+      // Setup question management
+      document.getElementById('btnTambahSoal').addEventListener('click', addNewQuestion);
+      document.getElementById('btnSimpanSoal').addEventListener('click', saveQuestionsToFirebase);
+    }
+
+    function setupDropdownEvents() {
+      // Tambah Mapel Chain
+      document.getElementById('jenjangDropdown2')?.addEventListener('change', e => {
+        loadChildDropdown(e.target.value, 'kelasDropdown');
+      });
+
+      // Tambah Semester Chain
+      document.getElementById('jenjangDropdown3')?.addEventListener('change', e => {
+        loadChildDropdown(e.target.value, 'kelasDropdown2');
+      });
+
+      document.getElementById('kelasDropdown2')?.addEventListener('change', () => {
+        const j = document.getElementById('jenjangDropdown3').value;
+        const k = document.getElementById('kelasDropdown2').value;
+        loadChildDropdown(`${j}/${k}`, 'mapelDropdown');
+      });
+
+      document.getElementById('mapelDropdown')?.addEventListener('change', () => {
+        const j = document.getElementById('jenjangDropdown3').value;
+        const k = document.getElementById('kelasDropdown2').value;
+        const m = document.getElementById('mapelDropdown').value;
+        loadChildDropdown(`${j}/${k}/${m}`, 'semesterDropdown');
+      });
+
+      // Tambah Versi Chain
+      document.getElementById('jenjangDropdown4')?.addEventListener('change', e => {
+        loadChildDropdown(e.target.value, 'kelasDropdown3');
+      });
+
+      document.getElementById('kelasDropdown3')?.addEventListener('change', () => {
+        const j = document.getElementById('jenjangDropdown4').value;
+        const k = document.getElementById('kelasDropdown3').value;
+        loadChildDropdown(`${j}/${k}`, 'mapelDropdown2');
+      });
+
+      document.getElementById('mapelDropdown2')?.addEventListener('change', () => {
+        const j = document.getElementById('jenjangDropdown4').value;
+        const k = document.getElementById('kelasDropdown3').value;
+        const m = document.getElementById('mapelDropdown2').value;
+        loadChildDropdown(`${j}/${k}/${m}`, 'semesterDropdown');
+      });
+
+      // Kelola Soal Chain
+      document.getElementById('jenjangManage')?.addEventListener('change', e => {
+        loadChildDropdown(e.target.value, 'kelasManage');
+      });
+
+      document.getElementById('kelasManage')?.addEventListener('change', () => {
+        const j = document.getElementById('jenjangManage').value;
+        const k = document.getElementById('kelasManage').value;
+        loadChildDropdown(`${j}/${k}`, 'mapelManage');
+      });
+
+      document.getElementById('mapelManage')?.addEventListener('change', () => {
+        const j = document.getElementById('jenjangManage').value;
+        const k = document.getElementById('kelasManage').value;
+        const m = document.getElementById('mapelManage').value;
+        loadChildDropdown(`${j}/${k}/${m}`, 'semesterManage');
+      });
+
+      document.getElementById('semesterManage')?.addEventListener('change', () => {
+        const j = document.getElementById('jenjangManage').value;
+        const k = document.getElementById('kelasManage').value;
+        const m = document.getElementById('mapelManage').value;
+        const s = document.getElementById('semesterManage').value;
+        loadChildDropdown(`${j}/${k}/${m}/${s}`, 'versiManage');
+      });
+    }
+  </script>
 </body>
 </html>
