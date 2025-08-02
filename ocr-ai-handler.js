@@ -33,7 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnScan) {
     btnScan.addEventListener("click", mulaiScanOCR);
   }
-
+  //test
   const btnParse = document.getElementById("btnParseOCR");
   if (btnParse) {
     btnParse.addEventListener("click", async () => {
