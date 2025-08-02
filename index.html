@@ -221,7 +221,7 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script src="firebase-config.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+  <script src="https://unpkg.com/tesseract.js@v3.0.3/dist/tesseract.min.js"></script>
 </head>
 <body onload="initApp();">
 
@@ -556,54 +556,53 @@
     }
 
     async function startOCRScan() {
-      const fileInput = document.getElementById('uploadSoalGambar');
-      if (!fileInput.files || fileInput.files.length === 0) {
-        alert('Pilih gambar soal terlebih dahulu!');
-        return;
-      }
+  const fileInput = document.getElementById('uploadSoalGambar');
+  if (!fileInput.files || fileInput.files.length === 0) {
+    alert('Pilih gambar soal terlebih dahulu!');
+    return;
+  }
 
-      const file = fileInput.files[0];
-      const btn = document.getElementById('btnMulaiScan');
-      const loader = document.getElementById('ocrLoader');
-      const ocrResult = document.getElementById('ocrResult');
+  const file = fileInput.files[0];
+  const btn = document.getElementById('btnMulaiScan');
+  const loader = document.getElementById('ocrLoader');
+  const ocrResult = document.getElementById('ocrResult');
 
-      // Show loading state
-      btn.disabled = true;
-      btn.textContent = 'Sedang memindai...';
-      loader.style.display = 'block';
-      ocrResult.value = '';
+  // Show loading state
+  btn.disabled = true;
+  btn.textContent = 'Sedang memindai...';
+  loader.style.display = 'block';
+  ocrResult.value = '';
 
-      try {
-        // Gunakan worker pool untuk performa lebih baik
-        const worker = Tesseract.createWorker();
-        
-        await worker.load();
-        await worker.loadLanguage('ind');
-        await worker.initialize('ind');
-        
-        // Konfigurasi untuk hasil lebih baik
-        await worker.setParameters({
-          tessedit_pageseg_mode: '6', // Assume a single uniform block of text
-          tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,?!()[]{}@#$%^&*_+-=/:;'
-        });
-        
-        const { data: { text } } = await worker.recognize(file);
-        
-        ocrResult.value = text;
-        learningDB.stats.totalProcessed++;
-        
-        await worker.terminate();
-      } catch (error) {
-        console.error('OCR Error:', error);
-        alert('Gagal melakukan OCR: ' + error.message);
-        ocrResult.value = 'Error: ' + error.message;
-      } finally {
-        // Reset loading state
-        btn.disabled = false;
-        btn.textContent = '🔍 Mulai Scan OCR';
-        loader.style.display = 'none';
-      }
+  try {
+    // PERBAIKAN DI SINI: Gunakan createWorker tanpa .load()
+    const worker = await Tesseract.createWorker(); // Langsung buat worker
+    
+    await worker.loadLanguage('ind');
+    await worker.initialize('ind');
+    
+    // Konfigurasi untuk hasil lebih baik
+    await worker.setParameters({
+      tessedit_pageseg_mode: '6', // Assume a single uniform block of text
+      tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,?!()[]{}@#$%^&*_+-=/:;'
+    });
+    
+    const { data: { text } } = await worker.recognize(file);
+    
+    ocrResult.value = text;
+    learningDB.stats.totalProcessed++;
+    
+    await worker.terminate();
+  } catch (error) {
+    console.error('OCR Error:', error);
+    alert('Gagal melakukan OCR: ' + error.message);
+    ocrResult.value = 'Error: ' + error.message;
+  } finally {
+    // Reset loading state
+    btn.disabled = false;
+    btn.textContent = '🔍 Mulai Scan OCR';
+    loader.style.display = 'none';
     }
+  }
 
     // ======================== //
     // OPTIMIZED PARSING FUNCTIONS //
