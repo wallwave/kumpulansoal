@@ -232,6 +232,7 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script src="firebase-config.js"></script>
   <script src="https://unpkg.com/tesseract.js@v3.0.3/dist/tesseract.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/easyocr@1.0.0/dist/easyocr.min.js"></script>
 </head>
 <body onload="initApp();">
 
@@ -564,10 +565,10 @@
 
     
 // ======================== //
-// OPTIMIZED OCR PROCESSING //
+// SIMPLE & POWERFUL OCR    //
 // ======================== //
 function setupOCR() {
-  // File upload handler
+  // File upload handler (tetap sama)
   document.getElementById('uploadSoalGambar').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file) {
@@ -579,7 +580,7 @@ function setupOCR() {
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
     if (!validTypes.includes(file.type)) {
       alert('Format file tidak didukung! Harap gunakan JPG, JPEG, atau PNG.');
-      e.target.value = ''; // Reset input file
+      e.target.value = '';
       document.getElementById('ocrPreview').style.display = 'none';
       return;
     }
@@ -590,19 +591,19 @@ function setupOCR() {
     reader.onload = function(e) {
       preview.src = e.target.result;
       preview.style.display = 'block';
-    }
+    };
     
     reader.readAsDataURL(file);
   });
 
   // OCR Scan button
-  document.getElementById('btnMulaiScan').addEventListener('click', startOCRScan);
+  document.getElementById('btnMulaiScan').addEventListener('click', startEasyOCR);
 
   // Parse button
   document.getElementById('btnParseOCR').addEventListener('click', parseOCRText);
 }
 
-async function startOCRScan() {
+async function startEasyOCR() {
   const fileInput = document.getElementById('uploadSoalGambar');
   if (!fileInput.files || fileInput.files.length === 0) {
     alert('Pilih gambar soal terlebih dahulu!');
@@ -632,169 +633,79 @@ async function startOCRScan() {
   btn.disabled = true;
   btn.textContent = 'Sedang memindai...';
   loader.style.display = 'block';
-  loader.textContent = 'Menyiapkan OCR...';
+  loader.textContent = 'Memuat model OCR...';
   ocrResult.value = '';
 
-  let worker = null;
-  let imageUrl = null;
-  
   try {
-    imageUrl = URL.createObjectURL(file);
+    // Langkah 1: Konversi file ke Image object
+    const img = await loadImage(file);
     
-    // Solusi 1: Gunakan timeout untuk mencegah hang
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Proses OCR timeout (lebih dari 60 detik)')), 60000)
-    );
-
-    // Solusi 2: Buat worker dengan logger untuk monitoring progress
-    worker = await Tesseract.createWorker({
-      logger: progress => {
-        if (progress.status === 'recognizing text') {
-          loader.textContent = `Memproses: ${Math.round(progress.progress * 100)}%`;
-        }
-      },
-      errorHandler: err => console.error('Worker error:', err)
-    });
-    
-    // Solusi 3: Deteksi bahasa yang tersedia
-    let availableLangs = [];
-    try {
-      availableLangs = await worker.getLoadedLanguages();
-    } catch (e) {
-      console.warn('Gagal mendapatkan daftar bahasa, menggunakan default');
-    }
-    
-    const useLang = availableLangs.includes('ind') ? 'ind' : 'eng';
-    
-    // Solusi 4: Handle language loading secara manual
-    try {
-      await worker.loadLanguage(useLang);
-    } catch (e) {
-      console.error(`Gagal memuat bahasa ${useLang}:`, e);
-      // Coba bahasa default jika gagal
-      try {
-        await worker.loadLanguage('eng');
-      } catch (fallbackErr) {
-        throw new Error('Gagal memuat bahasa Inggris sebagai fallback');
-      }
-    }
-    
-    await worker.initialize(useLang);
-    
-    // Solusi 5: Konfigurasi optimal untuk teks screenshot
-    await worker.setParameters({
-      tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK, // Mode 6: Assume a single uniform block of text
-      tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,?!()[]{}@#$%^&*_+-=/:; ',
-      preserve_interword_spaces: '1', // Pertahankan spasi antar kata
-      textord_tabfind_show_blocks: '0', // Nonaktifkan fitur debug
-      user_defined_dpi: '300' // Asumsi DPI tinggi
-    });
-    
-    // Solusi 6: Proses OCR dengan pre-processing gambar yang ditingkatkan
-    const recognizePromise = worker.recognize(imageUrl, {
-      rectangle: { 
-        top: 0, 
-        left: 0, 
-        width: 10000, 
-        height: 10000 
-      },
-      preprocess: function(image) {
-        return image
-          .resize({ width: 1200 }) // Resize untuk optimasi performa
-          .grayscale() // Konversi ke grayscale
-          .median(1)   // Noise reduction
-          .threshold({ 
-            threshold: 150, 
-            auto: true // Auto threshold jika memungkinkan
-          });
+    // Langkah 2: Inisialisasi EasyOCR
+    const ocr = new EasyOCR({
+      lang: ['id'], // Bahasa Indonesia
+      gpu: false,   // Gunakan CPU saja
+      logger: message => {
+        loader.textContent = message;
       }
     });
     
-    // Gunakan timeout bersama proses OCR
-    const { data } = await Promise.race([recognizePromise, timeoutPromise]);
+    // Langkah 3: Proses OCR
+    loader.textContent = 'Memproses gambar...';
+    const results = await ocr.recognize(img);
     
-    // Solusi 7: Post-processing hasil OCR yang lebih baik
-    let cleanedText = data.text
-      .replace(/(\r\n|\r|\n){2,}/g, '\n') // Hapus baris kosong berlebihan
-      .replace(/(\d+)\.([A-Za-z])/g, '$1. $2') // Tambah spasi setelah nomor (1.Batu -> 1. Batu)
-      .replace(/([a-z])\.([A-Z])/g, '$1. $2') // Tambah spasi setelah titik
-      .replace(/\s{2,}/g, ' '); // Hapus spasi berlebihan
+    // Langkah 4: Format hasil
+    const text = results.map(r => r.text).join('\n');
+    ocrResult.value = text;
     
-    ocrResult.value = cleanedText;
+    // Tampilkan statistik
+    loader.textContent = `Selesai! ${results.length} teks terdeteksi`;
     
-    // Update stats jika diperlukan
-    if (window.learningDB && learningDB.stats) {
-      learningDB.stats.totalProcessed++;
-    }
   } catch (error) {
     console.error('OCR Error:', error);
     
-    // Solusi 8: Diagnosis error spesifik
     let errorMsg = 'Terjadi kesalahan tak terduga';
     
-    if (error.message.includes('net::ERR_FAILED')) {
+    if (error.message.includes('Failed to load model')) {
       errorMsg = 'Gagal memuat model OCR. Pastikan koneksi internet stabil.';
-    } else if (error.message.includes('language')) {
-      errorMsg = 'Bahasa OCR tidak tersedia. Silakan coba dengan bahasa Inggris.';
-    } else if (error.message.includes('timeout')) {
-      errorMsg = 'Proses OCR terlalu lama. Coba gambar yang lebih kecil atau crop area penting saja.';
-    } else if (error.message.includes('worker')) {
-      errorMsg = 'Gagal inisialisasi OCR engine. Coba refresh halaman.';
+    } else if (error.message.includes('lang')) {
+      errorMsg = 'Bahasa Indonesia tidak tersedia. Menggunakan bahasa Inggris...';
+      // Coba ulangi dengan bahasa Inggris
+      try {
+        const ocrEng = new EasyOCR({ lang: ['en'], gpu: false });
+        const results = await ocrEng.recognize(img);
+        ocrResult.value = results.map(r => r.text).join('\n');
+        return;
+      } catch (engError) {
+        errorMsg = 'Gagal juga dengan bahasa Inggris';
+      }
     }
     
     alert(`Gagal melakukan OCR: ${errorMsg}`);
-    ocrResult.value = `ERROR: ${error.message}\n\nDetail:\n${errorMsg}\n\nTips:\n1. Pastikan gambar berisi teks jelas\n2. Gunakan format PNG kualitas tinggi\n3. Crop bagian penting saja\n4. Teks minimal 10px ukurannya`;
+    ocrResult.value = `ERROR: ${error.message}\n\nTips:\n1. Pastikan gambar jelas\n2. Teks minimal 10px`;
     
-    // Solusi 9: Fallback ke OCR cloud jika tersedia
-    if (imageUrl && confirm('Coba gunakan OCR cloud?')) {
-      try {
-        loader.textContent = 'Mencoba OCR Cloud...';
-        const cloudResult = await callCloudOCR(imageUrl);
-        ocrResult.value = cloudResult;
-      } catch (cloudError) {
-        console.error('Cloud OCR Error:', cloudError);
-        ocrResult.value += '\n\nGagal juga dengan OCR cloud: ' + cloudError.message;
-      }
-    }
   } finally {
-    // Cleanup resources
-    if (worker) {
-      try {
-        await worker.terminate();
-      } catch (e) {
-        console.warn('Worker termination error:', e);
-      }
-    }
-    
-    if (imageUrl) URL.revokeObjectURL(imageUrl);
-    
-    // Reset UI
     btn.disabled = false;
     btn.textContent = '🔍 Mulai Scan OCR';
-    loader.style.display = 'none';
-    loader.textContent = '';
+    setTimeout(() => {
+      loader.style.display = 'none';
+    }, 3000);
   }
 }
 
-// Solusi 10: Fungsi fallback ke OCR cloud
-async function callCloudOCR(imageUrl) {
-  const API_KEY = 'K83526596588957'; // Dapatkan di ocr.space
-  const API_URL = `https://api.ocr.space/parse/imageurl?apikey=${API_KEY}&url=${encodeURIComponent(imageUrl)}&language=ind&isOverlayRequired=false`;
-  
-  try {
-    const response = await fetch(API_URL);
-    const data = await response.json();
-    
-    if (data.IsErroredOnProcessing) {
-      throw new Error(data.ErrorMessage[0] || 'Cloud OCR error');
-    }
-    
-    return data.ParsedResults[0].ParsedText;
-  } catch (error) {
-    throw new Error('Cloud OCR gagal: ' + error.message);
-  }
+// Helper: Load file to Image
+function loadImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('Gagal memuat gambar'));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error('Gagal membaca file'));
+    reader.readAsDataURL(file);
+  });
 }
-
     
     // ======================== //
     // OPTIMIZED PARSING FUNCTIONS //
@@ -958,6 +869,7 @@ async function callCloudOCR(imageUrl) {
         .replace(/\s+/g, ' ')         // Gabungkan spasi ganda
         .trim();                      // Hapus spasi di awal/akhir
     }
+    
 
     // ======================== //
     // QUESTION MANAGEMENT FUNCTIONS //
