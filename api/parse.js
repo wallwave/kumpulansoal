@@ -1,14 +1,25 @@
-// /api/parse.js
+export const config = {
+  runtime: "edge",
+};
 
-export default async function handler(req, res) {
+export default async function handler(req) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return new Response("Method not allowed", {
+      status: 405,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Content-Type": "text/plain"
+      }
+    });
   }
 
-  const { text } = req.body;
+  const { text } = await req.json();
 
   if (!text) {
-    return res.status(400).json({ error: "No text provided" });
+    return new Response("No text provided", {
+      status: 400,
+      headers: { "Access-Control-Allow-Origin": "*" }
+    });
   }
 
   const prompt = `
@@ -33,35 +44,37 @@ Contoh format:
 Sekarang ubah teks berikut jadi format seperti itu:
 
 """${text}"""
-  `;
+`;
+
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.apenapi}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.3,
+    }),
+  });
+
+  const data = await res.json();
+  const answer = data.choices?.[0]?.message?.content?.trim();
 
   try {
-    const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
+    const json = JSON.parse(answer);
+    return new Response(JSON.stringify(json), {
+      status: 200,
       headers: {
-        Authorization: `Bearer ${process.env.apenapi}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-4o",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.3,
-      }),
+        "Access-Control-Allow-Origin": "*",
+        "Content-Type": "application/json"
+      }
     });
-
-    const data = await openaiRes.json();
-    const answer = data.choices?.[0]?.message?.content?.trim();
-
-    try {
-      const json = JSON.parse(answer);
-      return res.status(200).json(json);
-    } catch (e) {
-      return res.status(500).json({
-        error: "❌ Gagal parse JSON dari OpenAI",
-        raw: answer,
-      });
-    }
-  } catch (e) {
-    return res.status(500).json({ error: "❌ Gagal komunikasi dengan OpenAI", detail: e.message });
+  } catch (err) {
+    return new Response("❌ Gagal parse JSON dari OpenAI:\n" + answer, {
+      status: 500,
+      headers: { "Access-Control-Allow-Origin": "*" }
+    });
   }
 }
