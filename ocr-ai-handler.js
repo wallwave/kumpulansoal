@@ -1,98 +1,114 @@
-// Helper DOM
-const $ = id => document.getElementById(id);
-let selectedFile = null;
-let ocrMemory = []; // buat belajar bentuk soal
+// ocr-ai-handler.js
 
+// Helper DOM\const $ = id => document.getElementById(id);
+
+let selectedFile = null;
+
+// Pilih gambar soal
 $('uploadSoalGambar').addEventListener('change', e => {
-  if (e.target.files.length === 0) return resetOCR();
+  if (e.target.files.length === 0) {
+    selectedFile = null;
+    $('ocrPreview').src = '';
+    $('ocrResult').value = '';
+    $('jsonResult').value = '';
+    return;
+  }
   selectedFile = e.target.files[0];
   $('ocrPreview').src = URL.createObjectURL(selectedFile);
-  resetOCR();
-});
-
-function resetOCR() {
-  $('ocrPreview').src = '';
   $('ocrResult').value = '';
   $('jsonResult').value = '';
-}
+});
 
+// Mulai scan OCR pake Tesseract.js
 $('btnMulaiScan').addEventListener('click', () => {
-  if (!selectedFile) return alert('Pilih gambar dulu');
+  if (!selectedFile) {
+    alert('Pilih gambar soal terlebih dahulu!');
+    return;
+  }
   $('btnMulaiScan').disabled = true;
   $('btnMulaiScan').textContent = '🔄 Memindai...';
+
   Tesseract.recognize(selectedFile, 'ind')
     .then(({ data: { text } }) => {
       $('ocrResult').value = text;
-      saveOCRMemory(text); // simpan buat "belajar"
     })
-    .catch(err => alert('OCR gagal: ' + err.message))
+    .catch(err => {
+      alert('OCR gagal: ' + err.message);
+    })
     .finally(() => {
       $('btnMulaiScan').disabled = false;
       $('btnMulaiScan').textContent = '🔍 Mulai Scan OCR';
     });
 });
 
+// Tombol parse OCR ke JSON lokal
 $('btnParseOCR').addEventListener('click', () => {
-  const raw = $('ocrResult').value.trim();
-  if (!raw) return alert('Belum ada teks OCR');
-  const parsed = parseSoalFromText(raw);
-  $('jsonResult').value = JSON.stringify({ versi_1: parsed }, null, 2);
-  window.soalArray = { versi_1: parsed };
+  const rawText = $('ocrResult').value.trim();
+  if (!rawText) return alert('Teks OCR kosong.');
+
+  const json = parseSoalFromText(rawText);
+
+  // Transform array jadi object versi_1
+  const soalObject = { versi_1: {} };
+  json.forEach((item, index) => {
+    soalObject.versi_1[(index + 1).toString()] = item;
+  });
+
+  $('jsonResult').value = JSON.stringify(soalObject, null, 2);
+  window.soalArray = soalObject;
 });
 
+// =======================
+// Parser Lokal Pintar
+// =======================
 function parseSoalFromText(text) {
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-  const result = {};
-  let i = 0;
+  const soalArray = [];
+  let currentSoal = null;
 
-  while (i < lines.length) {
-    if (!/^\d+[\).]/.test(lines[i])) {
-      i++; continue;
+  lines.forEach(line => {
+    const soalMatch = line.match(/^(\d+)[\.\)]*[\s\-]*(.+)/);
+    if (soalMatch) {
+      if (currentSoal) soalArray.push(currentSoal);
+      currentSoal = {
+        question: soalMatch[2].trim(),
+        a: '', b: '', c: '', d: '', correct: ''
+      };
+      return;
     }
 
-    const question = lines[i++].replace(/^\d+[\).]\s*/, '');
-
-    const opsi = {};
-    while (i < lines.length && /^[a-dA-D][\).]/.test(lines[i])) {
-      const key = lines[i][0].toLowerCase();
-      opsi[key] = lines[i].substring(2).trim();
-      i++;
+    const pilihanMatch = line.match(/^([a-dA-D])[\.\)\-–]?\s*(.+)/);
+    if (pilihanMatch && currentSoal) {
+      const huruf = pilihanMatch[1].toLowerCase();
+      currentSoal[huruf] = pilihanMatch[2].replace(/[€•]/g, '').trim();
+      return;
     }
 
-    // Deteksi Jawaban
-    let correct = 'a'; // default
-    if (i < lines.length && /jawaban\s*[:\-–]\s*/i.test(lines[i])) {
-      const match = lines[i].match(/jawaban\s*[:\-–]\s*([a-dA-D])/i);
-      if (match) correct = match[1].toLowerCase();
-      i++;
+    if (line.toLowerCase().includes('jawaban') && currentSoal) {
+      const correctMatch = line.match(/jawaban[\s\:\-]*([a-dA-D])/i);
+      if (correctMatch) currentSoal.correct = correctMatch[1].toLowerCase();
     }
 
-    const no = Object.keys(result).length + 1;
-    result[no] = {
-      question,
-      a: opsi.a || '',
-      b: opsi.b || '',
-      c: opsi.c || '',
-      d: opsi.d || '',
-      correct: ['a', 'b', 'c', 'd'].includes(correct) ? correct : 'a'
-    };
-  }
+    if (currentSoal && line.includes('€')) {
+      line.split('€').forEach(sub => {
+        const subMatch = sub.match(/^([a-dA-D])[\.\)\-]?\s*(.+)/);
+        if (subMatch) {
+          const huruf = subMatch[1].toLowerCase();
+          currentSoal[huruf] = subMatch[2].trim();
+        }
+      });
+    }
 
-  return result;
-}
+    if (currentSoal && currentSoal.d === '') {
+      const potongan = line.match(/(.+?)\s+(.+?)\s+(.+?)\s+(.+)/);
+      if (potongan) {
+        ['a', 'b', 'c', 'd'].forEach((h, i) => {
+          currentSoal[h] = potongan[i + 1]?.trim();
+        });
+      }
+    }
+  });
 
-
-// Simpan hasil ke memory lokal (buat belajar)
-function saveOCRMemory(text) {
-  const data = localStorage.getItem('ocr_learning') || '[]';
-  const arr = JSON.parse(data);
-  arr.push(text);
-  localStorage.setItem('ocr_learning', JSON.stringify(arr));
-}
-
-// Liat riwayat belajar AI
-function lihatRiwayatOCR() {
-  const data = JSON.parse(localStorage.getItem('ocr_learning') || '[]');
-  console.log(`📚 AI telah melihat ${data.length} OCR`);
-  console.table(data.slice(-3)); // tampilkan 3 terakhir
+  if (currentSoal) soalArray.push(currentSoal);
+  return soalArray;
 }
