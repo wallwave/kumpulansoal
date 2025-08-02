@@ -39,7 +39,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const btnParse = document.getElementById("btnParseOCR");
   if (btnParse) {
-    btnParse.addEventListener("click", parseOCRToEditor);
+    btnParse.addEventListener("click", async () => {
+      const raw = document.getElementById("ocrResult").value;
+      const jsonArea = document.getElementById("jsonResult");
+      jsonArea.value = "🧠 Memproses dengan AI...";
+
+      try {
+        const res = await fetch("https://kumpulansoal-cvfcs4w3w-boys-projects-ee470813.vercel.app/api/parse", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: raw })
+        });
+        const result = await res.json();
+        const content = result.result?.choices?.[0]?.message?.content || "❌ Gagal parsing";
+        jsonArea.value = content;
+
+        const parsed = JSON.parse(content);
+        renderSoalEditor(Object.values(parsed));
+      } catch (e) {
+        jsonArea.value = "❌ Error parsing AI: " + e.message;
+      }
+    });
   }
 
   const simpanBtn = document.getElementById("btnSimpanSoal");
@@ -63,51 +83,6 @@ async function mulaiScanOCR() {
   ocrResult.value = text;
 }
 
-// 🧠 Parse hasil OCR menjadi soal JSON
-function parseOCRToEditor() {
-  const raw = document.getElementById("ocrResult").value;
-  const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-  const soalObj = {};
-  let current = null;
-  let index = 1;
-
-  const nomorSoalRegex = /^\d+[\.\)\s]+/;
-  const opsiPattern = /([a-dA-D])[\.\)\s]+([^a-dA-D]+?)(?=([a-dA-D][\.\)\s])|$)/g;
-
-  lines.forEach(line => {
-    if (nomorSoalRegex.test(line)) {
-      if (current) soalObj[index++] = current;
-      current = { question: line.replace(nomorSoalRegex, "").trim(), a: "", b: "", c: "", d: "", correct: "a" };
-    } else if (current && [...line.matchAll(opsiPattern)].length >= 1) {
-      const matches = [...line.matchAll(opsiPattern)];
-      matches.forEach(match => {
-        const huruf = match[1].toLowerCase();
-        const isi = match[2].replace(/[€•\-]/g, "").trim();
-        if (["a", "b", "c", "d"].includes(huruf)) {
-          current[huruf] = isi;
-        }
-      });
-    } else if (/^[a-dA-D]$/.test(line) && current) {
-      current.correct = line.toLowerCase();
-    } else if (current && !current.question) {
-      // Kalau line tidak termasuk opsi dan bukan nomor soal, dan belum ada question
-      current.question = line;
-    }
-  });
-
-  if (current) soalObj[index] = current;
-
-  const jsonArea = document.getElementById("jsonResult");
-  if (jsonArea) jsonArea.value = JSON.stringify(soalObj, null, 2);
-
-  renderSoalEditor(Object.values(soalObj));
-}
-
-
-
-
-
-
 function renderSoalEditor(soalList) {
   const container = document.getElementById("daftarSoal");
   container.innerHTML = "";
@@ -122,11 +97,11 @@ function renderSoalEditor(soalList) {
 
     wrap.innerHTML = `
       <label>Soal ${i + 1}</label>
-      <textarea class="question" rows="2">${soal.question}</textarea>
-      <input class="a" placeholder="A" value="${soal.a}" />
-      <input class="b" placeholder="B" value="${soal.b}" />
-      <input class="c" placeholder="C" value="${soal.c}" />
-      <input class="d" placeholder="D" value="${soal.d}" />
+      <textarea class="question" rows="2">${soal.question || ""}</textarea>
+      <input class="a" placeholder="A" value="${soal.a || ""}" />
+      <input class="b" placeholder="B" value="${soal.b || ""}" />
+      <input class="c" placeholder="C" value="${soal.c || ""}" />
+      <input class="d" placeholder="D" value="${soal.d || ""}" />
       <select class="correct">
         <option value="a" ${soal.correct === "a" ? "selected" : ""}>A</option>
         <option value="b" ${soal.correct === "b" ? "selected" : ""}>B</option>
