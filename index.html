@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>📚 Admin Panel Kumpulan Soal</title>
   <style>
-    /* Base Styles */
+    /* ======================== */
+    /* BASE STYLES */
+    /* ======================== */
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       line-height: 1.6;
@@ -79,11 +81,15 @@
     
     input[type="file"] {
       margin-bottom: 15px;
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
     }
     
     #ocrPreview {
       max-width: 100%;
-      height: auto;
+      max-height: 300px;
       border: 1px solid #eee;
       border-radius: 5px;
       margin: 10px 0;
@@ -99,7 +105,9 @@
       background-color: #fafafa;
     }
     
-    /* Question Item Styles */
+    /* ======================== */
+    /* QUESTION ITEM STYLES */
+    /* ======================== */
     .soal-item {
       padding: 15px;
       margin-bottom: 15px;
@@ -155,7 +163,9 @@
       background-color: #c0392b;
     }
     
-    /* Loading Indicator */
+    /* ======================== */
+    /* LOADING INDICATOR */
+    /* ======================== */
     .loader {
       display: none;
       border: 4px solid #f3f3f3;
@@ -172,7 +182,32 @@
       100% { transform: rotate(360deg); }
     }
     
-    /* Responsive */
+    /* ======================== */
+    /* PROGRESS INDICATOR */
+    /* ======================== */
+    .progress-container {
+      margin: 15px 0;
+      background: #f1f1f1;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    
+    .progress-bar {
+      height: 6px;
+      background: #3498db;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    
+    .progress-info {
+      margin-top: 5px;
+      font-size: 0.9em;
+      color: #666;
+    }
+    
+    /* ======================== */
+    /* RESPONSIVE STYLES */
+    /* ======================== */
     @media (max-width: 768px) {
       .option-grid {
         grid-template-columns: 1fr;
@@ -190,11 +225,17 @@
 </head>
 <body onload="initApp();">
 
+  <!-- ======================== -->
+  <!-- HEADER SECTION -->
+  <!-- ======================== -->
   <div class="header">
     <h2>🧠 Admin Panel Kumpulan Soal</h2>
     <button onclick="logout()">Logout</button>
   </div>
 
+  <!-- ======================== -->
+  <!-- CATEGORY MANAGEMENT -->
+  <!-- ======================== -->
   <div class="form">
     <h3>➕ Tambah Jenjang</h3>
     <input type="text" id="jenjangInput" placeholder="Contoh: SD, SMP, SMA" />
@@ -250,7 +291,9 @@
     <pre id="output" style="background:#eee;padding:10px;border-radius:5px;"></pre>
   </div>
 
-  <!-- OCR Section -->
+  <!-- ======================== -->
+  <!-- OCR PROCESSING SECTION -->
+  <!-- ======================== -->
   <div class="form">
     <h3>📥 Upload Gambar Soal</h3>
     <input type="file" id="uploadSoalGambar" accept="image/*">
@@ -271,6 +314,9 @@
     <textarea id="jsonResult" rows="10" placeholder="Hasil parsing JSON akan muncul di sini..."></textarea>
   </div>
 
+  <!-- ======================== -->
+  <!-- QUESTION EDITOR SECTION -->
+  <!-- ======================== -->
   <div class="form">
     <h3>📋 Daftar Soal Editor</h3>
     <div id="daftarSoal" class="scrollable-box">
@@ -283,17 +329,17 @@
   </div>
 
   <script>
-    // ========================
-    // Firebase Configuration
-    // ========================
+    // ======================== //
+    // FIREBASE INITIALIZATION //
+    // ======================== //
     // Gunakan db dari firebase-config.js
     if (typeof db === 'undefined') {
       alert('Error: Firebase not initialized. Check firebase-config.js');
     }
 
-    // ========================
-    // Global Variables
-    // ========================
+    // ======================== //
+    // GLOBAL VARIABLES //
+    // ======================== //
     let currentPath = "";
     let currentSoalSet = [];
     let learningDB = {
@@ -323,9 +369,9 @@
       }
     };
 
-    // ========================
-    // Authentication
-    // ========================
+    // ======================== //
+    // AUTHENTICATION FUNCTIONS //
+    // ======================== //
     function cekLogin() {
       if (localStorage.getItem('admin_login') !== 'true') {
         alert('Kamu belum login!');
@@ -347,9 +393,9 @@
       window.location.href = 'login.html';
     }
 
-    // ========================
-    // CRUD Operations
-    // ========================
+    // ======================== //
+    // CATEGORY MANAGEMENT FUNCTIONS //
+    // ======================== //
     function tambahJenjang() {
       const jenjang = document.getElementById('jenjangInput').value.trim();
       if (!jenjang) return alert('⚠ Isi jenjang dulu.');
@@ -410,9 +456,9 @@
       });
     }
 
-    // ========================
-    // Navigation
-    // ========================
+    // ======================== //
+    // NAVIGATION FUNCTIONS //
+    // ======================== //
     function isKelolaSoalReady() {
       return ['jenjangManage', 'kelasManage', 'mapelManage', 'semesterManage', 'versiManage']
         .every(id => document.getElementById(id).value !== '');
@@ -433,9 +479,9 @@
       window.location.href = `kelola-soal.html?path=${encodeURIComponent(path)}`;
     }
 
-    // ========================
-    // Data Loading
-    // ========================
+    // ======================== //
+    // DATA LOADING FUNCTIONS //
+    // ======================== //
     function loadAllKategori() {
       db.ref().once('value').then(snapshot => {
         const data = snapshot.val() || {};
@@ -479,9 +525,9 @@
       });
     }
 
-    // ========================
-    // OCR Processing
-    // ========================
+    // ======================== //
+    // OPTIMIZED OCR PROCESSING //
+    // ======================== //
     function setupOCR() {
       // File upload handler
       document.getElementById('uploadSoalGambar').addEventListener('change', function(e) {
@@ -528,20 +574,25 @@
       ocrResult.value = '';
 
       try {
-        const { data: { text } } = await Tesseract.recognize(
-          file,
-          'ind',
-          {
-            logger: m => console.log(m),
-            tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,?!()[]{}@#$%^&*_+-=/:;',
-            preserve_interword_spaces: true,
-            tessedit_pageseg_mode: 6
-          }
-        );
+        // Gunakan worker pool untuk performa lebih baik
+        const worker = Tesseract.createWorker();
+        
+        await worker.load();
+        await worker.loadLanguage('ind');
+        await worker.initialize('ind');
+        
+        // Konfigurasi untuk hasil lebih baik
+        await worker.setParameters({
+          tessedit_pageseg_mode: '6', // Assume a single uniform block of text
+          tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,?!()[]{}@#$%^&*_+-=/:;'
+        });
+        
+        const { data: { text } } = await worker.recognize(file);
         
         ocrResult.value = text;
         learningDB.stats.totalProcessed++;
         
+        await worker.terminate();
       } catch (error) {
         console.error('OCR Error:', error);
         alert('Gagal melakukan OCR: ' + error.message);
@@ -554,6 +605,9 @@
       }
     }
 
+    // ======================== //
+    // OPTIMIZED PARSING FUNCTIONS //
+    // ======================== //
     function parseOCRText() {
       const rawText = document.getElementById('ocrResult').value.trim();
       if (!rawText) {
@@ -563,188 +617,160 @@
 
       const btn = document.getElementById('btnParseOCR');
       const loader = document.getElementById('parseLoader');
+      
+      // Create progress container
+      const progressContainer = document.createElement('div');
+      progressContainer.className = 'progress-container';
+      progressContainer.innerHTML = `
+        <div class="progress-bar" id="parseProgressBar"></div>
+        <div class="progress-info" id="parseProgressInfo">Memulai parsing...</div>
+      `;
+      btn.parentNode.insertBefore(progressContainer, btn.nextSibling);
 
       btn.disabled = true;
       btn.textContent = 'Memproses...';
       loader.style.display = 'block';
-
-      try {
-        const parsedData = parseQuestionsWithAI(rawText);
-        document.getElementById('jsonResult').value = JSON.stringify(parsedData, null, 2);
-        
-        // Convert to array format for Firebase
-        currentSoalSet = Object.values(parsedData.versi_1);
-        renderQuestionEditor();
-        
-      } catch (err) {
-        alert('Gagal parse soal: ' + err.message);
-        console.error(err);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = '⚙️ Parse ke Format JSON Soal';
-        loader.style.display = 'none';
-      }
+      
+      // Parsing dengan progress indicator
+      setTimeout(() => {
+        try {
+          const startTime = performance.now();
+          
+          // Parsing dengan optimasi
+          const parsedData = optimizedParseQuestions(rawText);
+          
+          const endTime = performance.now();
+          
+          document.getElementById('jsonResult').value = JSON.stringify(parsedData, null, 2);
+          currentSoalSet = Object.values(parsedData.versi_1);
+          renderQuestionEditor();
+          
+          // Update progress info
+          document.getElementById('parseProgressInfo').innerHTML = `
+            Parsing selesai dalam ${(endTime - startTime).toFixed(2)} ms<br>
+            ${currentSoalSet.length} soal berhasil diproses
+          `;
+          document.getElementById('parseProgressBar').style.width = '100%';
+        } catch (err) {
+          alert('Gagal parse soal: ' + err.message);
+          console.error(err);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = '⚙️ Parse ke Format JSON Soal';
+          loader.style.display = 'none';
+        }
+      }, 50); // Beri sedikit waktu untuk UI update
     }
 
-    function parseQuestionsWithAI(rawText) {
-      const lines = rawText.split('\n')
-        .map(line => line.trim())
-        .filter(line => line.length > 0);
-
+    // Versi parsing yang jauh lebih cepat
+    function optimizedParseQuestions(rawText) {
+      const lines = rawText.split('\n');
       const questions = { versi_1: {} };
       let currentQuestion = null;
       let qIndex = 1;
-      let optionBuffer = [];
-
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
+      let currentOption = null;
+      
+      // Cache regex patterns
+      const questionPattern = /^(\d+)[.)\s]\s*(.+)/;
+      const optionPattern = /^([a-d])[.)]\s*(.+)/i;
+      const correctPattern = /(jawaban|kunci)\s*:\s*([a-d])/i;
+      const markerPattern = /[€√]/;
+      
+      // Update progress
+      const totalLines = lines.length;
+      let processedLines = 0;
+      
+      for (let i = 0; i < totalLines; i++) {
+        const line = lines[i].trim();
+        processedLines++;
         
-        // Check for question patterns
-        const qMatch = matchPattern(line, learningDB.patterns.question);
+        // Update progress setiap 10 baris
+        if (i % 10 === 0) {
+          const progress = Math.round((processedLines / totalLines) * 100);
+          document.getElementById('parseProgressBar').style.width = `${progress}%`;
+          document.getElementById('parseProgressInfo').textContent = 
+            `Memproses... ${progress}% (${i}/${totalLines} baris)`;
+        }
+        
+        if (!line) continue;
+        
+        // Check for question
+        const qMatch = line.match(questionPattern);
         if (qMatch) {
           if (currentQuestion) {
-            processQuestionOptions(currentQuestion, optionBuffer);
-            questions.versi_1[qIndex] = currentQuestion;
-            optionBuffer = [];
-            qIndex++;
+            questions.versi_1[qIndex++] = currentQuestion;
           }
           
           currentQuestion = {
-            question: cleanQuestionText(qMatch[2]),
+            question: cleanText(qMatch[2]),
             a: '', b: '', c: '', d: '',
             correct: ''
           };
+          currentOption = null;
           continue;
         }
         
-        // Check for option patterns
-        const oMatch = matchPattern(line, learningDB.patterns.option);
+        // Check for option
+        const oMatch = line.match(optionPattern);
         if (oMatch && currentQuestion) {
-          optionBuffer.push(line);
+          currentOption = oMatch[1].toLowerCase();
+          currentQuestion[currentOption] = cleanText(oMatch[2]);
           continue;
         }
         
-        // Check for correct answer markers
-        const cMatch = matchPattern(line, learningDB.patterns.correct);
+        // Check for correct answer marker
+        const cMatch = line.match(correctPattern);
         if (cMatch && currentQuestion) {
-          if (cMatch[1]) {
-            currentQuestion.correct = cMatch[1].toLowerCase();
-          } else {
-            const markedOption = findMarkedOption(optionBuffer);
-            if (markedOption) currentQuestion.correct = markedOption;
-          }
+          currentQuestion.correct = cMatch[2].toLowerCase();
           continue;
         }
         
-        // If no pattern matched, add to current option buffer
-        if (currentQuestion) optionBuffer.push(line);
+        // Handle multi-line options
+        if (currentOption && currentQuestion) {
+          currentQuestion[currentOption] += ' ' + cleanText(line);
+          continue;
+        }
+        
+        // Handle special markers (€, √)
+        if (markerPattern.test(line) && currentQuestion) {
+          // If we have an option context, mark it as correct
+          if (currentOption) {
+            currentQuestion.correct = currentOption;
+            currentQuestion[currentOption] = currentQuestion[currentOption].replace(markerPattern, '').trim();
+          } 
+          // Otherwise, try to find the option containing the marker
+          else {
+            const options = ['a', 'b', 'c', 'd'];
+            for (const opt of options) {
+              if (currentQuestion[opt].includes(line)) {
+                currentQuestion.correct = opt;
+                currentQuestion[opt] = currentQuestion[opt].replace(markerPattern, '').trim();
+                break;
+              }
+            }
+          }
+        }
       }
-
-      // Process the last question
+      
+      // Add last question
       if (currentQuestion) {
-        processQuestionOptions(currentQuestion, optionBuffer);
         questions.versi_1[qIndex] = currentQuestion;
       }
-
+      
       return questions;
     }
 
-    // Helper: Match text against multiple patterns
-    function matchPattern(text, patterns) {
-      for (const pattern of patterns) {
-        const match = text.match(pattern);
-        if (match) return match;
-      }
-      return null;
-    }
-
-    // Helper: Clean question text
-    function cleanQuestionText(text) {
+    // Fungsi pembersih teks yang dioptimasi
+    function cleanText(text) {
       return text
-        .replace(/^\s*[-.)]\s*/, '')
-        .replace(/\s+/g, ' ')
-        .trim();
+        .replace(/^\s*[-.)]\s*/, '') // Hapus karakter khusus di awal
+        .replace(/\s+/g, ' ')         // Gabungkan spasi ganda
+        .trim();                      // Hapus spasi di awal/akhir
     }
 
-    // Helper: Find which option contains correct answer marker
-    function findMarkedOption(buffer) {
-      for (let i = 0; i < buffer.length; i++) {
-        if (buffer[i].match(/[€√]/)) {
-          const optionMatch = buffer[i].match(/^([a-d])/i);
-          if (optionMatch) return optionMatch[1].toLowerCase();
-          
-          if (i === 0) return 'a';
-          if (i === 1) return 'b';
-          if (i === 2) return 'c';
-          if (i === 3) return 'd';
-        }
-      }
-      return null;
-    }
-
-    // Process question options from buffer
-    function processQuestionOptions(question, buffer) {
-      const options = { a: [], b: [], c: [], d: [] };
-      let currentOption = null;
-
-      buffer.forEach(line => {
-        // Check if line starts a new option
-        const oMatch = matchPattern(line, learningDB.patterns.option);
-        if (oMatch) {
-          currentOption = oMatch[1] ? oMatch[1].toLowerCase() : 
-            (!options.a.length ? 'a' :
-             !options.b.length ? 'b' :
-             !options.c.length ? 'c' : 'd');
-          
-          const optionText = oMatch[2] || oMatch[1] || line;
-          options[currentOption].push(cleanOptionText(optionText));
-          return;
-        }
-        
-        // Continue adding to current option
-        if (currentOption) {
-          options[currentOption].push(cleanOptionText(line));
-        }
-      });
-
-      // Join multi-line options and clean up
-      ['a', 'b', 'c', 'd'].forEach(opt => {
-        question[opt] = options[opt].join(' ').trim();
-      });
-      
-      // If no correct answer detected, make an educated guess
-      if (!question.correct) {
-        question.correct = guessCorrectAnswer(question);
-      }
-    }
-
-    // Helper: Clean option text
-    function cleanOptionText(text) {
-      return text
-        .replace(/[€√]/g, '')
-        .replace(/^\s*[-.)]\s*/, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-    }
-
-    // Educated guess for correct answer
-    function guessCorrectAnswer(question) {
-      // Check for any remaining markers
-      for (const opt of ['a', 'b', 'c', 'd']) {
-        if (question[opt].match(/[€√]/)) return opt;
-      }
-      
-      // Check for longest option (common in tests)
-      const options = ['a', 'b', 'c', 'd']
-        .map(opt => ({ opt, length: question[opt].length }))
-        .sort((a, b) => b.length - a.length);
-      
-      return options[0].opt;
-    }
-
-    // ========================
-    // Question Management
-    // ========================
+    // ======================== //
+    // QUESTION MANAGEMENT FUNCTIONS //
+    // ======================== //
     function renderQuestionEditor() {
       const container = document.getElementById('daftarSoal');
       const emptyState = document.getElementById('emptyState');
@@ -861,9 +887,9 @@
         });
     }
 
-    // ========================
-    // Initialization
-    // ========================
+    // ======================== //
+    // INITIALIZATION FUNCTION //
+    // ======================== //
     function initApp() {
       // Check login
       cekLogin();
@@ -882,6 +908,9 @@
       document.getElementById('btnSimpanSoal').addEventListener('click', saveQuestionsToFirebase);
     }
 
+    // ======================== //
+    // DROPDOWN EVENT HANDLERS //
+    // ======================== //
     function setupDropdownEvents() {
       // Tambah Mapel Chain
       document.getElementById('jenjangDropdown2')?.addEventListener('change', e => {
