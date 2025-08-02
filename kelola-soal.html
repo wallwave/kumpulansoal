@@ -79,11 +79,15 @@
     
     input[type="file"] {
       margin-bottom: 15px;
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
     }
     
     #ocrPreview {
       max-width: 100%;
-      height: auto;
+      max-height: 300px;
       border: 1px solid #eee;
       border-radius: 5px;
       margin: 10px 0;
@@ -214,7 +218,7 @@
     <h3>📥 Upload Gambar Soal</h3>
     <input type="file" id="uploadSoalGambar" accept="image/*">
     <img id="ocrPreview" src="" alt="Preview">
-    <div class="loader" id="ocrLoader"></div>
+    <div class="loader" id="imageLoader"></div>
     <button id="btnMulaiScan">🔍 Mulai Scan OCR</button>
   </div>
 
@@ -222,8 +226,8 @@
   <div class="form">
     <h3>📄 Hasil Scan OCR (Teks Mentah)</h3>
     <textarea id="ocrResult" rows="10" placeholder="Teks hasil OCR akan muncul di sini..."></textarea>
+    <div class="loader" id="ocrLoader"></div>
     <button id="btnParseOCR">⚙️ Parse ke Format JSON Soal</button>
-    <div class="loader" id="parseLoader"></div>
   </div>
 
   <!-- JSON Parsing Preview -->
@@ -362,14 +366,21 @@
     function initUI() {
       // File upload handler
       document.getElementById('uploadSoalGambar').addEventListener('change', function(e) {
-        if (e.target.files.length === 0) {
+        const file = e.target.files[0];
+        if (!file) {
           document.getElementById('ocrPreview').style.display = 'none';
           return;
         }
         
-        const file = e.target.files[0];
-        document.getElementById('ocrPreview').src = URL.createObjectURL(file);
-        document.getElementById('ocrPreview').style.display = 'block';
+        const preview = document.getElementById('ocrPreview');
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+          preview.src = e.target.result;
+          preview.style.display = 'block';
+        }
+        
+        reader.readAsDataURL(file);
       });
 
       // OCR Scan button
@@ -398,30 +409,37 @@
       const file = fileInput.files[0];
       const btn = document.getElementById('btnMulaiScan');
       const loader = document.getElementById('ocrLoader');
+      const ocrResult = document.getElementById('ocrResult');
 
+      // Show loading state
       btn.disabled = true;
-      btn.textContent = 'Memindai...';
+      btn.textContent = 'Sedang memindai...';
       loader.style.display = 'block';
+      ocrResult.value = '';
 
       try {
         const { data: { text } } = await Tesseract.recognize(
           file,
           'ind',
-          { 
+          {
             logger: m => console.log(m),
-            preserve_interword_spaces: true
+            tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,?!()[]{}@#$%^&*_+-=/:;',
+            preserve_interword_spaces: true,
+            tessedit_pageseg_mode: 6
           }
         );
         
-        document.getElementById('ocrResult').value = text;
+        ocrResult.value = text;
         learningDB.stats.totalProcessed++;
         saveLearningDB();
         updateLearningStats();
         
-      } catch (err) {
-        alert('OCR gagal: ' + err.message);
-        console.error(err);
+      } catch (error) {
+        console.error('OCR Error:', error);
+        alert('Gagal melakukan OCR: ' + error.message);
+        ocrResult.value = 'Error: ' + error.message;
       } finally {
+        // Reset loading state
         btn.disabled = false;
         btn.textContent = '🔍 Mulai Scan OCR';
         loader.style.display = 'none';
