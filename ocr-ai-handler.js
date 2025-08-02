@@ -48,14 +48,13 @@ document.addEventListener("DOMContentLoaded", () => {
         const res = await fetch("https://kumpulansoal-cvfcs4w3w-boys-projects-ee470813.vercel.app/api/parse", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt: raw })
+          body: JSON.stringify({ text: raw })
         });
-        const result = await res.json();
-        const content = result.result?.choices?.[0]?.message?.content || "❌ Gagal parsing";
-        jsonArea.value = content;
+        const parsed = await res.json();
 
-        const parsed = JSON.parse(content);
-        renderSoalEditor(Object.values(parsed));
+        const pretty = JSON.stringify(parsed, null, 2);
+        jsonArea.value = pretty;
+        renderSoalEditor(parsed);
       } catch (e) {
         jsonArea.value = "❌ Error parsing AI: " + e.message;
       }
