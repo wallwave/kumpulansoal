@@ -1,16 +1,14 @@
-export const config = {
-  runtime: "edge",
-};
+// /api/parse.js
 
-export default async function handler(req) {
+export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { text } = await req.json();
+  const { text } = req.body;
 
   if (!text) {
-    return new Response("No text provided", { status: 400 });
+    return res.status(400).json({ error: "No text provided" });
   }
 
   const prompt = `
@@ -35,34 +33,35 @@ Contoh format:
 Sekarang ubah teks berikut jadi format seperti itu:
 
 """${text}"""
-`;
-
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-  method: "POST",
-  headers: {
-    Authorization: `Bearer ${process.env.apenapi}`, // ✅ pakai nama variabel sesuai
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({
-    model: "gpt-4o",
-    messages: [{ role: "user", content: prompt }],
-    temperature: 0.3,
-  }),
-});
-
-
-  const data = await res.json();
-  const answer = data.choices?.[0]?.message?.content?.trim();
+  `;
 
   try {
-    const json = JSON.parse(answer);
-    return new Response(JSON.stringify(json), {
-      headers: { "Content-Type": "application/json" },
-      status: 200,
+    const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.apenapi}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4o",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.3,
+      }),
     });
-  } catch (err) {
-    return new Response("❌ Gagal parse JSON dari OpenAI:\n" + answer, {
-      status: 500,
-    });
+
+    const data = await openaiRes.json();
+    const answer = data.choices?.[0]?.message?.content?.trim();
+
+    try {
+      const json = JSON.parse(answer);
+      return res.status(200).json(json);
+    } catch (e) {
+      return res.status(500).json({
+        error: "❌ Gagal parse JSON dari OpenAI",
+        raw: answer,
+      });
+    }
+  } catch (e) {
+    return res.status(500).json({ error: "❌ Gagal komunikasi dengan OpenAI", detail: e.message });
   }
 }
