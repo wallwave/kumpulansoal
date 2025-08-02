@@ -1,7 +1,10 @@
-// ✅ Cek Login
+// Helper DOM
+const $ = id => document.getElementById(id);
+
+// ======= AUTH =======
+
 function cekLogin() {
-  const login = localStorage.getItem('admin_login');
-  if (login !== 'true') {
+  if (localStorage.getItem('admin_login') !== 'true') {
     alert('Kamu belum login!');
     window.location.href = 'login.html';
   }
@@ -21,94 +24,109 @@ function logout() {
   window.location.href = 'login.html';
 }
 
-// ✅ Tambah Jenjang
+// ======= CRUD TAMBAH =======
+
 function tambahJenjang() {
-  const jenjang = document.getElementById('jenjangInput').value.trim();
-  if (!jenjang) return alert('Isi jenjang dulu.');
+  const jenjang = $('jenjangInput').value.trim();
+  if (!jenjang) return alert('⚠ Isi jenjang dulu.');
   db.ref(jenjang).set(true).then(() => {
     alert(`✅ Jenjang '${jenjang}' ditambahkan!`);
-    document.getElementById('jenjangInput').value = '';
+    $('jenjangInput').value = '';
     loadAllKategori();
   });
 }
 
-// ✅ Tambah Kelas
 function tambahKelas() {
-  const jenjang = document.getElementById('jenjangDropdown').value;
-  const kelas = document.getElementById('kelasInput').value.trim();
-  if (!jenjang || !kelas) return alert('Pilih jenjang dan isi kelas.');
+  const jenjang = $('jenjangDropdown').value;
+  const kelas = $('kelasInput').value.trim();
+  if (!jenjang || !kelas) return alert('⚠ Pilih jenjang dan isi kelas.');
   db.ref(`${jenjang}/${kelas}`).set(true).then(() => {
     alert(`✅ Kelas '${kelas}' ditambahkan ke '${jenjang}'`);
-    document.getElementById('kelasInput').value = '';
+    $('kelasInput').value = '';
     loadAllKategori();
   });
 }
 
-// ✅ Tambah Mapel
 function tambahMapel() {
-  const j = document.getElementById('jenjangDropdown2').value;
-  const k = document.getElementById('kelasDropdown').value;
-  const m = document.getElementById('mapelInput').value.trim();
-  if (!j || !k || !m) return alert('Lengkapi jenjang, kelas, dan mapel.');
+  const j = $('jenjangDropdown2').value;
+  const k = $('kelasDropdown').value;
+  const m = $('mapelInput').value.trim();
+  if (!j || !k || !m) return alert('⚠ Lengkapi jenjang, kelas, dan mapel.');
   db.ref(`${j}/${k}/${m}`).set(true).then(() => {
     alert(`✅ Mapel '${m}' ditambahkan!`);
-    document.getElementById('mapelInput').value = '';
+    $('mapelInput').value = '';
     loadAllKategori();
   });
 }
 
-// ✅ Tambah Semester
 function tambahSemester() {
-  const j = document.getElementById('jenjangDropdown3').value;
-  const k = document.getElementById('kelasDropdown2').value;
-  const m = document.getElementById('mapelDropdown').value;
-  const s = document.getElementById('semesterInput').value.trim();
-  if (!j || !k || !m || !s) return alert('Lengkapi semua field.');
+  const j = $('jenjangDropdown3').value;
+  const k = $('kelasDropdown2').value;
+  const m = $('mapelDropdown').value;
+  const s = $('semesterInput').value.trim();
+  if (!j || !k || !m || !s) return alert('⚠ Lengkapi semua field.');
   db.ref(`${j}/${k}/${m}/${s}`).set(true).then(() => {
     alert(`✅ Semester '${s}' ditambahkan!`);
-    document.getElementById('semesterInput').value = '';
+    $('semesterInput').value = '';
     loadAllKategori();
   });
 }
 
-// ✅ Tambah Versi
 function tambahVersi() {
-  const j = document.getElementById('jenjangDropdown4').value;
-  const k = document.getElementById('kelasDropdown3').value;
-  const m = document.getElementById('mapelDropdown2').value;
-  const s = document.getElementById('semesterDropdown').value;
-  const v = document.getElementById('versiInput').value.trim();
-  if (!j || !k || !m || !s || !v) return alert('Lengkapi semua field.');
+  const j = $('jenjangDropdown4').value;
+  const k = $('kelasDropdown3').value;
+  const m = $('mapelDropdown2').value;
+  const s = $('semesterDropdown').value;
+  const v = $('versiInput').value.trim();
+  if (!j || !k || !m || !s || !v) return alert('⚠ Lengkapi semua field.');
   db.ref(`${j}/${k}/${m}/${s}/${v}`).set(true).then(() => {
     alert(`✅ Versi '${v}' ditambahkan!`);
-    document.getElementById('versiInput').value = '';
+    $('versiInput').value = '';
     loadAllKategori();
   });
 }
 
-// ✅ Navigasi Kelola
-function navigateToKelolaSoal() {
-  const j = document.getElementById('jenjangManage').value;
-  const k = document.getElementById('kelasManage').value;
-  const m = document.getElementById('mapelManage').value;
-  const s = document.getElementById('semesterManage').value;
-  const v = document.getElementById('versiManage').value;
-  if (!j || !k || !m || !s || !v) return alert('Lengkapi dropdown!');
-  const path = encodeURIComponent(`${j}/${k}/${m}/${s}/${v}`);
-  window.location.href = `kelola-soal.html?path=${path}`;
+// ======= NAVIGASI KELOLA SOAL =======
+
+function isKelolaSoalReady() {
+  return ['jenjangManage', 'kelasManage', 'mapelManage', 'semesterManage', 'versiManage']
+    .every(id => $(id).value !== '');
 }
 
-// ✅ Load Dropdown Root (jenjang)
+function updateKelolaButton() {
+  const btn = $('btnKelolaSoal');
+  btn.disabled = !isKelolaSoalReady();
+}
+
+function navigateToKelolaSoal() {
+  if (!isKelolaSoalReady()) {
+    alert('Lengkapi semua dropdown terlebih dahulu!');
+    return;
+  }
+  const path = [
+    $('jenjangManage').value,
+    $('kelasManage').value,
+    $('mapelManage').value,
+    $('semesterManage').value,
+    $('versiManage').value
+  ].join('/');
+  window.location.href = `kelola-soal.html?path=${encodeURIComponent(path)}`;
+}
+
+// ======= LOAD DATA =======
+
 function loadAllKategori() {
   db.ref().once('value').then(snapshot => {
     const data = snapshot.val() || {};
     const jenjangKeys = Object.keys(data);
+
     const dropdowns = [
       'jenjangDropdown', 'jenjangDropdown2', 'jenjangDropdown3',
       'jenjangDropdown4', 'jenjangManage'
     ];
+
     dropdowns.forEach(id => {
-      const el = document.getElementById(id);
+      const el = $(id);
       if (!el) return;
       el.innerHTML = '<option value="">--Pilih Jenjang--</option>';
       jenjangKeys.forEach(key => {
@@ -119,15 +137,15 @@ function loadAllKategori() {
       });
     });
 
-    document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+    $('output').textContent = JSON.stringify(data, null, 2);
   });
 }
 
-// ✅ Load Child Dropdown
 function loadChildDropdown(path, dropdownId) {
-  const el = document.getElementById(dropdownId);
+  const el = $(dropdownId);
   if (!el) return;
   el.innerHTML = '<option value="">--Pilih--</option>';
+
   db.ref(path).once('value').then(snapshot => {
     const data = snapshot.val();
     if (!data) return;
@@ -140,89 +158,107 @@ function loadChildDropdown(path, dropdownId) {
   });
 }
 
-// ✅ Pasang Event Berantai
+// ======= SETUP EVENT DROPDOWN =======
+
 function setupDropdownEvents() {
-  document.getElementById('jenjangDropdown2')?.addEventListener('change', e => {
-    const j = e.target.value;
-    loadChildDropdown(j, 'kelasDropdown');
+  // Tambah Mapel Chain
+  $('jenjangDropdown2')?.addEventListener('change', e => {
+    loadChildDropdown(e.target.value, 'kelasDropdown');
   });
 
-  document.getElementById('kelasDropdown')?.addEventListener('change', () => {
-    const j = document.getElementById('jenjangDropdown2').value;
-    const k = document.getElementById('kelasDropdown').value;
+  $('kelasDropdown')?.addEventListener('change', () => {
+    const j = $('jenjangDropdown2').value;
+    const k = $('kelasDropdown').value;
     loadChildDropdown(`${j}/${k}`, 'mapelDropdown');
   });
 
-  document.getElementById('jenjangDropdown3')?.addEventListener('change', e => {
+  // Tambah Semester Chain
+  $('jenjangDropdown3')?.addEventListener('change', e => {
     loadChildDropdown(e.target.value, 'kelasDropdown2');
   });
 
-  document.getElementById('kelasDropdown2')?.addEventListener('change', () => {
-    const j = document.getElementById('jenjangDropdown3').value;
-    const k = document.getElementById('kelasDropdown2').value;
+  $('kelasDropdown2')?.addEventListener('change', () => {
+    const j = $('jenjangDropdown3').value;
+    const k = $('kelasDropdown2').value;
     loadChildDropdown(`${j}/${k}`, 'mapelDropdown');
   });
 
-  document.getElementById('mapelDropdown')?.addEventListener('change', () => {
-    const j = document.getElementById('jenjangDropdown3').value;
-    const k = document.getElementById('kelasDropdown2').value;
-    const m = document.getElementById('mapelDropdown').value;
+  $('mapelDropdown')?.addEventListener('change', () => {
+    const j = $('jenjangDropdown3').value;
+    const k = $('kelasDropdown2').value;
+    const m = $('mapelDropdown').value;
     loadChildDropdown(`${j}/${k}/${m}`, 'semesterDropdown');
   });
 
-  document.getElementById('jenjangDropdown4')?.addEventListener('change', e => {
+  // Tambah Versi Chain
+  $('jenjangDropdown4')?.addEventListener('change', e => {
     loadChildDropdown(e.target.value, 'kelasDropdown3');
   });
 
-  document.getElementById('kelasDropdown3')?.addEventListener('change', () => {
-    const j = document.getElementById('jenjangDropdown4').value;
-    const k = document.getElementById('kelasDropdown3').value;
+  $('kelasDropdown3')?.addEventListener('change', () => {
+    const j = $('jenjangDropdown4').value;
+    const k = $('kelasDropdown3').value;
     loadChildDropdown(`${j}/${k}`, 'mapelDropdown2');
   });
 
-  document.getElementById('mapelDropdown2')?.addEventListener('change', () => {
-    const j = document.getElementById('jenjangDropdown4').value;
-    const k = document.getElementById('kelasDropdown3').value;
-    const m = document.getElementById('mapelDropdown2').value;
+  $('mapelDropdown2')?.addEventListener('change', () => {
+    const j = $('jenjangDropdown4').value;
+    const k = $('kelasDropdown3').value;
+    const m = $('mapelDropdown2').value;
     loadChildDropdown(`${j}/${k}/${m}`, 'semesterDropdown');
   });
 
-  document.getElementById('semesterDropdown')?.addEventListener('change', () => {
-    const j = document.getElementById('jenjangDropdown4').value;
-    const k = document.getElementById('kelasDropdown3').value;
-    const m = document.getElementById('mapelDropdown2').value;
-    const s = document.getElementById('semesterDropdown').value;
-    loadChildDropdown(`${j}/${k}/${m}/${s}`, 'versiManage'); // reuse
-  });
-
-  document.getElementById('jenjangManage')?.addEventListener('change', e => {
-    loadChildDropdown(e.target.value, 'kelasManage');
-  });
-
-  document.getElementById('kelasManage')?.addEventListener('change', () => {
-    const j = document.getElementById('jenjangManage').value;
-    const k = document.getElementById('kelasManage').value;
-    loadChildDropdown(`${j}/${k}`, 'mapelManage');
-  });
-
-  document.getElementById('mapelManage')?.addEventListener('change', () => {
-    const j = document.getElementById('jenjangManage').value;
-    const k = document.getElementById('kelasManage').value;
-    const m = document.getElementById('mapelManage').value;
-    loadChildDropdown(`${j}/${k}/${m}`, 'semesterManage');
-  });
-
-  document.getElementById('semesterManage')?.addEventListener('change', () => {
-    const j = document.getElementById('jenjangManage').value;
-    const k = document.getElementById('kelasManage').value;
-    const m = document.getElementById('mapelManage').value;
-    const s = document.getElementById('semesterManage').value;
+  $('semesterDropdown')?.addEventListener('change', () => {
+    const j = $('jenjangDropdown4').value;
+    const k = $('kelasDropdown3').value;
+    const m = $('mapelDropdown2').value;
+    const s = $('semesterDropdown').value;
     loadChildDropdown(`${j}/${k}/${m}/${s}`, 'versiManage');
   });
+
+  // Kelola Soal Chain
+  $('jenjangManage')?.addEventListener('change', e => {
+    loadChildDropdown(e.target.value, 'kelasManage');
+    updateKelolaButton();
+  });
+
+  $('kelasManage')?.addEventListener('change', () => {
+    const j = $('jenjangManage').value;
+    const k = $('kelasManage').value;
+    loadChildDropdown(`${j}/${k}`, 'mapelManage');
+    updateKelolaButton();
+  });
+
+  $('mapelManage')?.addEventListener('change', () => {
+    const j = $('jenjangManage').value;
+    const k = $('kelasManage').value;
+    const m = $('mapelManage').value;
+    loadChildDropdown(`${j}/${k}/${m}`, 'semesterManage');
+    updateKelolaButton();
+  });
+
+  $('semesterManage')?.addEventListener('change', () => {
+    const j = $('jenjangManage').value;
+    const k = $('kelasManage').value;
+    const m = $('mapelManage').value;
+    const s = $('semesterManage').value;
+    loadChildDropdown(`${j}/${k}/${m}/${s}`, 'versiManage');
+    updateKelolaButton();
+  });
+
+  $('versiManage')?.addEventListener('change', () => {
+    updateKelolaButton();
+  });
+
+  // Tombol Kelola Soal
+  $('btnKelolaSoal')?.addEventListener('click', navigateToKelolaSoal);
 }
+
+// ======= STARTUP =======
 
 document.addEventListener('DOMContentLoaded', () => {
   cekLogin();
   loadAllKategori();
   setupDropdownEvents();
-
+  updateKelolaButton(); // pastikan tombol disable pas mulai
+});
