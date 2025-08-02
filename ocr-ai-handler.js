@@ -46,21 +46,24 @@ function parseSoalFromText(text) {
   let i = 0;
 
   while (i < lines.length) {
-    if (!/^\d+[\).\s]/.test(lines[i])) {
-      i++; continue; // skip line tanpa nomor soal
+    if (!/^\d+[\).]/.test(lines[i])) {
+      i++; continue;
     }
 
-    const question = lines[i++].replace(/^\d+[\).\s]/, '');
+    const question = lines[i++].replace(/^\d+[\).]\s*/, '');
+
     const opsi = {};
-    while (i < lines.length && /^[a-dA-D][\).\s]/.test(lines[i])) {
+    while (i < lines.length && /^[a-dA-D][\).]/.test(lines[i])) {
       const key = lines[i][0].toLowerCase();
       opsi[key] = lines[i].substring(2).trim();
       i++;
     }
 
+    // Deteksi Jawaban
     let correct = 'a'; // default
-    if (i < lines.length && /jawaban[:\s]/i.test(lines[i])) {
-      correct = lines[i].split(/[:\s]/).pop().trim().toLowerCase();
+    if (i < lines.length && /jawaban\s*[:\-–]\s*/i.test(lines[i])) {
+      const match = lines[i].match(/jawaban\s*[:\-–]\s*([a-dA-D])/i);
+      if (match) correct = match[1].toLowerCase();
       i++;
     }
 
@@ -77,6 +80,7 @@ function parseSoalFromText(text) {
 
   return result;
 }
+
 
 // Simpan hasil ke memory lokal (buat belajar)
 function saveOCRMemory(text) {
