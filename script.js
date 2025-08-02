@@ -225,8 +225,4 @@ document.addEventListener('DOMContentLoaded', () => {
   cekLogin();
   loadAllKategori();
   setupDropdownEvents();
-<<<<<<< HEAD
-});
-=======
-});
->>>>>>> d401f58bcc05103da0e2073320d046f079a7b1f5
+
