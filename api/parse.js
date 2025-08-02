@@ -8,8 +8,8 @@ export default async function handler(req) {
       status: 405,
       headers: {
         "Access-Control-Allow-Origin": "*",
-        "Content-Type": "text/plain"
-      }
+        "Content-Type": "text/plain",
+      },
     });
   }
 
@@ -18,7 +18,7 @@ export default async function handler(req) {
   if (!text) {
     return new Response("No text provided", {
       status: 400,
-      headers: { "Access-Control-Allow-Origin": "*" }
+      headers: { "Access-Control-Allow-Origin": "*" },
     });
   }
 
@@ -68,13 +68,13 @@ Sekarang ubah teks berikut jadi format seperti itu:
       status: 200,
       headers: {
         "Access-Control-Allow-Origin": "*",
-        "Content-Type": "application/json"
-      }
+        "Content-Type": "application/json",
+      },
     });
   } catch (err) {
     return new Response("❌ Gagal parse JSON dari OpenAI:\n" + answer, {
       status: 500,
-      headers: { "Access-Control-Allow-Origin": "*" }
+      headers: { "Access-Control-Allow-Origin": "*" },
     });
   }
 }
