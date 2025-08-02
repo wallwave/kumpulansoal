@@ -641,23 +641,47 @@ async function startOCRScan() {
   try {
     imageUrl = URL.createObjectURL(file);
     
-    // Buat worker dengan logger untuk monitoring progress
+    // Solusi 1: Gunakan timeout untuk mencegah hang
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Proses OCR timeout (lebih dari 60 detik)')), 60000)
+    );
+
+    // Solusi 2: Buat worker dengan logger untuk monitoring progress
     worker = await Tesseract.createWorker({
       logger: progress => {
         if (progress.status === 'recognizing text') {
           loader.textContent = `Memproses: ${Math.round(progress.progress * 100)}%`;
         }
-      }
+      },
+      errorHandler: err => console.error('Worker error:', err)
     });
     
-    // Deteksi bahasa yang tersedia
-    const availableLangs = await worker.getLoadedLanguages();
+    // Solusi 3: Deteksi bahasa yang tersedia
+    let availableLangs = [];
+    try {
+      availableLangs = await worker.getLoadedLanguages();
+    } catch (e) {
+      console.warn('Gagal mendapatkan daftar bahasa, menggunakan default');
+    }
+    
     const useLang = availableLangs.includes('ind') ? 'ind' : 'eng';
     
-    await worker.loadLanguage(useLang);
+    // Solusi 4: Handle language loading secara manual
+    try {
+      await worker.loadLanguage(useLang);
+    } catch (e) {
+      console.error(`Gagal memuat bahasa ${useLang}:`, e);
+      // Coba bahasa default jika gagal
+      try {
+        await worker.loadLanguage('eng');
+      } catch (fallbackErr) {
+        throw new Error('Gagal memuat bahasa Inggris sebagai fallback');
+      }
+    }
+    
     await worker.initialize(useLang);
     
-    // Konfigurasi optimal untuk teks screenshot
+    // Solusi 5: Konfigurasi optimal untuk teks screenshot
     await worker.setParameters({
       tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK, // Mode 6: Assume a single uniform block of text
       tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,?!()[]{}@#$%^&*_+-=/:; ',
@@ -666,21 +690,35 @@ async function startOCRScan() {
       user_defined_dpi: '300' // Asumsi DPI tinggi
     });
     
-    // Proses OCR dengan pre-processing gambar
-    const { data } = await worker.recognize(imageUrl, {
+    // Solusi 6: Proses OCR dengan pre-processing gambar yang ditingkatkan
+    const recognizePromise = worker.recognize(imageUrl, {
+      rectangle: { 
+        top: 0, 
+        left: 0, 
+        width: 10000, 
+        height: 10000 
+      },
       preprocess: function(image) {
         return image
-          .resize({ width: 2000 }) // Resize lebar maksimum 2000px (pertahankan aspect ratio)
+          .resize({ width: 1200 }) // Resize untuk optimasi performa
           .grayscale() // Konversi ke grayscale
-          .threshold({ threshold: 150 }); // Thresholding untuk meningkatkan kontras
+          .median(1)   // Noise reduction
+          .threshold({ 
+            threshold: 150, 
+            auto: true // Auto threshold jika memungkinkan
+          });
       }
     });
     
-    // Post-processing hasil OCR
+    // Gunakan timeout bersama proses OCR
+    const { data } = await Promise.race([recognizePromise, timeoutPromise]);
+    
+    // Solusi 7: Post-processing hasil OCR yang lebih baik
     let cleanedText = data.text
       .replace(/(\r\n|\r|\n){2,}/g, '\n') // Hapus baris kosong berlebihan
       .replace(/(\d+)\.([A-Za-z])/g, '$1. $2') // Tambah spasi setelah nomor (1.Batu -> 1. Batu)
-      .replace(/([a-z])\.([A-Z])/g, '$1. $2'); // Tambah spasi setelah titik
+      .replace(/([a-z])\.([A-Z])/g, '$1. $2') // Tambah spasi setelah titik
+      .replace(/\s{2,}/g, ' '); // Hapus spasi berlebihan
     
     ocrResult.value = cleanedText;
     
@@ -691,7 +729,7 @@ async function startOCRScan() {
   } catch (error) {
     console.error('OCR Error:', error);
     
-    // Diagnosis error spesifik
+    // Solusi 8: Diagnosis error spesifik
     let errorMsg = 'Terjadi kesalahan tak terduga';
     
     if (error.message.includes('net::ERR_FAILED')) {
@@ -700,10 +738,24 @@ async function startOCRScan() {
       errorMsg = 'Bahasa OCR tidak tersedia. Silakan coba dengan bahasa Inggris.';
     } else if (error.message.includes('timeout')) {
       errorMsg = 'Proses OCR terlalu lama. Coba gambar yang lebih kecil atau crop area penting saja.';
+    } else if (error.message.includes('worker')) {
+      errorMsg = 'Gagal inisialisasi OCR engine. Coba refresh halaman.';
     }
     
     alert(`Gagal melakukan OCR: ${errorMsg}`);
-    ocrResult.value = `ERROR: ${errorMsg}\n\nTips:\n1. Pastikan gambar berisi teks jelas\n2. Gunakan format PNG kualitas tinggi\n3. Crop bagian penting saja\n4. Teks minimal 10px ukurannya`;
+    ocrResult.value = `ERROR: ${error.message}\n\nDetail:\n${errorMsg}\n\nTips:\n1. Pastikan gambar berisi teks jelas\n2. Gunakan format PNG kualitas tinggi\n3. Crop bagian penting saja\n4. Teks minimal 10px ukurannya`;
+    
+    // Solusi 9: Fallback ke OCR cloud jika tersedia
+    if (imageUrl && confirm('Coba gunakan OCR cloud?')) {
+      try {
+        loader.textContent = 'Mencoba OCR Cloud...';
+        const cloudResult = await callCloudOCR(imageUrl);
+        ocrResult.value = cloudResult;
+      } catch (cloudError) {
+        console.error('Cloud OCR Error:', cloudError);
+        ocrResult.value += '\n\nGagal juga dengan OCR cloud: ' + cloudError.message;
+      }
+    }
   } finally {
     // Cleanup resources
     if (worker) {
@@ -721,8 +773,27 @@ async function startOCRScan() {
     btn.textContent = '🔍 Mulai Scan OCR';
     loader.style.display = 'none';
     loader.textContent = '';
-    }
   }
+}
+
+// Solusi 10: Fungsi fallback ke OCR cloud
+async function callCloudOCR(imageUrl) {
+  const API_KEY = 'K83526596588957'; // Dapatkan di ocr.space
+  const API_URL = `https://api.ocr.space/parse/imageurl?apikey=${API_KEY}&url=${encodeURIComponent(imageUrl)}&language=ind&isOverlayRequired=false`;
+  
+  try {
+    const response = await fetch(API_URL);
+    const data = await response.json();
+    
+    if (data.IsErroredOnProcessing) {
+      throw new Error(data.ErrorMessage[0] || 'Cloud OCR error');
+    }
+    
+    return data.ParsedResults[0].ParsedText;
+  } catch (error) {
+    throw new Error('Cloud OCR gagal: ' + error.message);
+  }
+}
 
     
     // ======================== //
