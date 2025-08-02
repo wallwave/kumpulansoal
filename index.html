@@ -563,7 +563,7 @@
 
 
     
-    // ======================== //
+// ======================== //
 // OPTIMIZED OCR PROCESSING //
 // ======================== //
 function setupOCR() {
@@ -614,10 +614,17 @@ async function startOCRScan() {
   const loader = document.getElementById('ocrLoader');
   const ocrResult = document.getElementById('ocrResult');
 
-  // Validasi format file (lagi untuk keamanan)
+  // Validasi format dan ukuran file
   const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+  const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+  
   if (!validTypes.includes(file.type)) {
     alert('Format file tidak didukung! Harap gunakan JPG, JPEG, atau PNG.');
+    return;
+  }
+  
+  if (file.size > MAX_SIZE) {
+    alert('Ukuran file terlalu besar! Maksimal 5MB.');
     return;
   }
 
@@ -625,62 +632,99 @@ async function startOCRScan() {
   btn.disabled = true;
   btn.textContent = 'Sedang memindai...';
   loader.style.display = 'block';
+  loader.textContent = 'Menyiapkan OCR...';
   ocrResult.value = '';
 
+  let worker = null;
   let imageUrl = null;
+  
   try {
-    // [PERBAIKAN 1] Buat Object URL untuk semua format gambar
     imageUrl = URL.createObjectURL(file);
     
-    // [PERBAIKAN 2] Gunakan pendekatan yang kompatibel dengan semua format
-    const worker = await Tesseract.createWorker();
-    
-    // [PERBAIKAN 3] Gunakan bahasa default jika bahasa Indonesia error
-    let lang = 'ind';
-    try {
-      await worker.loadLanguage(lang);
-    } catch (e) {
-      console.warn('Bahasa Indonesia tidak tersedia, menggunakan bahasa Inggris');
-      lang = 'eng';
-    }
-    
-    await worker.initialize(lang);
-    
-    // [PERBAIKAN 4] Konfigurasi optimal untuk semua format gambar
-    await worker.setParameters({
-      tessedit_pageseg_mode: Tesseract.PSM.AUTO,
-      tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,?!()[]{}@#$%^&*_+-=/:; ',
-      preserve_interword_spaces: '1',
-      user_defined_dpi: '300'
+    // Buat worker dengan logger untuk monitoring progress
+    worker = await Tesseract.createWorker({
+      logger: progress => {
+        if (progress.status === 'recognizing text') {
+          loader.textContent = `Memproses: ${Math.round(progress.progress * 100)}%`;
+        }
+      }
     });
     
-    // [PERBAIKAN 5] Gunakan Object URL untuk semua format
-    const { data } = await worker.recognize(imageUrl);
-    ocrResult.value = data.text;
+    // Deteksi bahasa yang tersedia
+    const availableLangs = await worker.getLoadedLanguages();
+    const useLang = availableLangs.includes('ind') ? 'ind' : 'eng';
+    
+    await worker.loadLanguage(useLang);
+    await worker.initialize(useLang);
+    
+    // Konfigurasi optimal untuk teks screenshot
+    await worker.setParameters({
+      tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK, // Mode 6: Assume a single uniform block of text
+      tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,?!()[]{}@#$%^&*_+-=/:; ',
+      preserve_interword_spaces: '1', // Pertahankan spasi antar kata
+      textord_tabfind_show_blocks: '0', // Nonaktifkan fitur debug
+      user_defined_dpi: '300' // Asumsi DPI tinggi
+    });
+    
+    // Proses OCR dengan pre-processing gambar
+    const { data } = await worker.recognize(imageUrl, {
+      preprocess: function(image) {
+        return image
+          .resize({ width: 2000 }) // Resize lebar maksimum 2000px (pertahankan aspect ratio)
+          .grayscale() // Konversi ke grayscale
+          .threshold({ threshold: 150 }); // Thresholding untuk meningkatkan kontras
+      }
+    });
+    
+    // Post-processing hasil OCR
+    let cleanedText = data.text
+      .replace(/(\r\n|\r|\n){2,}/g, '\n') // Hapus baris kosong berlebihan
+      .replace(/(\d+)\.([A-Za-z])/g, '$1. $2') // Tambah spasi setelah nomor (1.Batu -> 1. Batu)
+      .replace(/([a-z])\.([A-Z])/g, '$1. $2'); // Tambah spasi setelah titik
+    
+    ocrResult.value = cleanedText;
     
     // Update stats jika diperlukan
-    if (learningDB && learningDB.stats) {
+    if (window.learningDB && learningDB.stats) {
       learningDB.stats.totalProcessed++;
     }
-    
-    await worker.terminate();
   } catch (error) {
     console.error('OCR Error:', error);
     
-    // [PERBAIKAN 6] Error message yang lebih informatif
-    const errorMsg = error.message || 'Unknown error';
-    alert(`Gagal melakukan OCR: ${errorMsg}\n\nPastikan gambar jelas dan berisi teks.`);
-    ocrResult.value = `Error: ${errorMsg}\n\nTips:\n1. Pastikan gambar jelas\n2. Teks tidak terpotong\n3. Ukuran file < 10MB`;
+    // Diagnosis error spesifik
+    let errorMsg = 'Terjadi kesalahan tak terduga';
+    
+    if (error.message.includes('net::ERR_FAILED')) {
+      errorMsg = 'Gagal memuat model OCR. Pastikan koneksi internet stabil.';
+    } else if (error.message.includes('language')) {
+      errorMsg = 'Bahasa OCR tidak tersedia. Silakan coba dengan bahasa Inggris.';
+    } else if (error.message.includes('timeout')) {
+      errorMsg = 'Proses OCR terlalu lama. Coba gambar yang lebih kecil atau crop area penting saja.';
+    }
+    
+    alert(`Gagal melakukan OCR: ${errorMsg}`);
+    ocrResult.value = `ERROR: ${errorMsg}\n\nTips:\n1. Pastikan gambar berisi teks jelas\n2. Gunakan format PNG kualitas tinggi\n3. Crop bagian penting saja\n4. Teks minimal 10px ukurannya`;
   } finally {
-    // [PERBAIKAN 7] Selalu bersihkan Object URL
+    // Cleanup resources
+    if (worker) {
+      try {
+        await worker.terminate();
+      } catch (e) {
+        console.warn('Worker termination error:', e);
+      }
+    }
+    
     if (imageUrl) URL.revokeObjectURL(imageUrl);
     
+    // Reset UI
     btn.disabled = false;
     btn.textContent = '🔍 Mulai Scan OCR';
     loader.style.display = 'none';
+    loader.textContent = '';
     }
   }
 
+    
     // ======================== //
     // OPTIMIZED PARSING FUNCTIONS //
     // ======================== //
