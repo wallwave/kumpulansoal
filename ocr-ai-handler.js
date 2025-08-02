@@ -44,11 +44,9 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         const res = await fetch("https://kumpulansoal.vercel.app/api/parse", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ text: raw }) // pastikan ini 'text'
-        });
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: raw })
+          });
 
         if (!res.ok) {
           const errText = await res.text();
