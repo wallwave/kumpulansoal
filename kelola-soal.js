@@ -11,8 +11,7 @@ function cekLogin() {
   }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  cekLogin();
+function initKelolaSoal() {
   const path = getPath();
   if (!path) {
     alert("❌ Path tidak ditemukan di URL.");
@@ -55,4 +54,4 @@ document.addEventListener("DOMContentLoaded", () => {
   }).catch(err => {
     list.innerHTML = "❌ Gagal load soal: " + err.message;
   });
-});
+}
