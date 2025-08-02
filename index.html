@@ -565,147 +565,184 @@
 
     
 // ======================== //
-// SIMPLE & POWERFUL OCR    //
-// ======================== //
-function setupOCR() {
-  // File upload handler (tetap sama)
-  document.getElementById('uploadSoalGambar').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (!file) {
-      document.getElementById('ocrPreview').style.display = 'none';
-      return;
+    // SIMPLE & RELIABLE OCR    //
+    // ======================== //
+    function setupOCR() {
+      // File upload handler
+      document.getElementById('uploadSoalGambar').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) {
+          document.getElementById('ocrPreview').style.display = 'none';
+          return;
+        }
+        
+        // Validasi format file
+        const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+        if (!validTypes.includes(file.type)) {
+          alert('Format file tidak didukung! Harap gunakan JPG, JPEG, atau PNG.');
+          e.target.value = '';
+          document.getElementById('ocrPreview').style.display = 'none';
+          return;
+        }
+        
+        const preview = document.getElementById('ocrPreview');
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+          preview.src = e.target.result;
+          preview.style.display = 'block';
+        };
+        
+        reader.readAsDataURL(file);
+      });
+
+      // OCR Scan button
+      document.getElementById('btnMulaiScan').addEventListener('click', startReliableOCR);
+
+      // Parse button
+      document.getElementById('btnParseOCR').addEventListener('click', parseOCRText);
     }
-    
-    // Validasi format file
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-    if (!validTypes.includes(file.type)) {
-      alert('Format file tidak didukung! Harap gunakan JPG, JPEG, atau PNG.');
-      e.target.value = '';
-      document.getElementById('ocrPreview').style.display = 'none';
-      return;
-    }
-    
-    const preview = document.getElementById('ocrPreview');
-    const reader = new FileReader();
-    
-    reader.onload = function(e) {
-      preview.src = e.target.result;
-      preview.style.display = 'block';
-    };
-    
-    reader.readAsDataURL(file);
-  });
 
-  // OCR Scan button
-  document.getElementById('btnMulaiScan').addEventListener('click', startEasyOCR);
-
-  // Parse button
-  document.getElementById('btnParseOCR').addEventListener('click', parseOCRText);
-}
-
-async function startEasyOCR() {
-  const fileInput = document.getElementById('uploadSoalGambar');
-  if (!fileInput.files || fileInput.files.length === 0) {
-    alert('Pilih gambar soal terlebih dahulu!');
-    return;
-  }
-
-  const file = fileInput.files[0];
-  const btn = document.getElementById('btnMulaiScan');
-  const loader = document.getElementById('ocrLoader');
-  const ocrResult = document.getElementById('ocrResult');
-
-  // Validasi format dan ukuran file
-  const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-  const MAX_SIZE = 5 * 1024 * 1024; // 5MB
-  
-  if (!validTypes.includes(file.type)) {
-    alert('Format file tidak didukung! Harap gunakan JPG, JPEG, atau PNG.');
-    return;
-  }
-  
-  if (file.size > MAX_SIZE) {
-    alert('Ukuran file terlalu besar! Maksimal 5MB.');
-    return;
-  }
-
-  // Show loading state
-  btn.disabled = true;
-  btn.textContent = 'Sedang memindai...';
-  loader.style.display = 'block';
-  loader.textContent = 'Memuat model OCR...';
-  ocrResult.value = '';
-
-  try {
-    // Langkah 1: Konversi file ke Image object
-    const img = await loadImage(file);
-    
-    // Langkah 2: Inisialisasi EasyOCR
-    const ocr = new EasyOCR({
-      lang: ['id'], // Bahasa Indonesia
-      gpu: false,   // Gunakan CPU saja
-      logger: message => {
-        loader.textContent = message;
-      }
-    });
-    
-    // Langkah 3: Proses OCR
-    loader.textContent = 'Memproses gambar...';
-    const results = await ocr.recognize(img);
-    
-    // Langkah 4: Format hasil
-    const text = results.map(r => r.text).join('\n');
-    ocrResult.value = text;
-    
-    // Tampilkan statistik
-    loader.textContent = `Selesai! ${results.length} teks terdeteksi`;
-    
-  } catch (error) {
-    console.error('OCR Error:', error);
-    
-    let errorMsg = 'Terjadi kesalahan tak terduga';
-    
-    if (error.message.includes('Failed to load model')) {
-      errorMsg = 'Gagal memuat model OCR. Pastikan koneksi internet stabil.';
-    } else if (error.message.includes('lang')) {
-      errorMsg = 'Bahasa Indonesia tidak tersedia. Menggunakan bahasa Inggris...';
-      // Coba ulangi dengan bahasa Inggris
-      try {
-        const ocrEng = new EasyOCR({ lang: ['en'], gpu: false });
-        const results = await ocrEng.recognize(img);
-        ocrResult.value = results.map(r => r.text).join('\n');
+    async function startReliableOCR() {
+      const fileInput = document.getElementById('uploadSoalGambar');
+      if (!fileInput.files || fileInput.files.length === 0) {
+        alert('Pilih gambar soal terlebih dahulu!');
         return;
-      } catch (engError) {
-        errorMsg = 'Gagal juga dengan bahasa Inggris';
+      }
+
+      const file = fileInput.files[0];
+      const btn = document.getElementById('btnMulaiScan');
+      const loader = document.getElementById('ocrLoader');
+      const ocrResult = document.getElementById('ocrResult');
+
+      // Validasi format dan ukuran file
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+      const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+      
+      if (!validTypes.includes(file.type)) {
+        alert('Format file tidak didukung! Harap gunakan JPG, JPEG, atau PNG.');
+        return;
+      }
+      
+      if (file.size > MAX_SIZE) {
+        alert('Ukuran file terlalu besar! Maksimal 5MB.');
+        return;
+      }
+
+      // Show loading state
+      btn.disabled = true;
+      btn.textContent = 'Sedang memindai...';
+      loader.style.display = 'block';
+      loader.textContent = 'Menyiapkan OCR...';
+      ocrResult.value = '';
+
+      let imageUrl = null;
+      
+      try {
+        imageUrl = URL.createObjectURL(file);
+        
+        // SOLUSI 1: Gunakan Tesseract.js dengan konfigurasi yang dioptimalkan
+        const worker = await Tesseract.createWorker({
+          logger: progress => {
+            if (progress.status === 'recognizing text') {
+              const percent = Math.round(progress.progress * 100);
+              loader.textContent = `Memproses: ${percent}%`;
+            }
+          },
+          errorHandler: err => console.error('Worker error:', err)
+        });
+        
+        // SOLUSI 2: Gunakan bahasa Indonesia sebagai default, dengan fallback ke Inggris
+        try {
+          await worker.loadLanguage('ind');
+          await worker.initialize('ind');
+        } catch (e) {
+          console.warn('Bahasa Indonesia tidak tersedia, menggunakan bahasa Inggris');
+          await worker.loadLanguage('eng');
+          await worker.initialize('eng');
+        }
+        
+        // SOLUSI 3: Konfigurasi optimal untuk teks soal
+        await worker.setParameters({
+          tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK,
+          tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,?!()[]{}@#$%^&*_+-=/:; ',
+          preserve_interword_spaces: '1',
+          user_defined_dpi: '300'
+        });
+        
+        // SOLUSI 4: Proses OCR dengan timeout
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Proses OCR terlalu lama (lebih dari 60 detik)')), 60000)
+        );
+        
+        const recognizePromise = worker.recognize(imageUrl);
+        
+        const { data } = await Promise.race([recognizePromise, timeoutPromise]);
+        
+        // SOLUSI 5: Pembersihan hasil OCR
+        let cleanedText = data.text
+          .replace(/(\r\n|\r|\n){2,}/g, '\n') // Hapus baris kosong berlebihan
+          .replace(/(\d+)\.([A-Za-z])/g, '$1. $2') // Tambah spasi setelah nomor
+          .replace(/([a-z])\.([A-Z])/g, '$1. $2'); // Tambah spasi setelah titik
+        
+        ocrResult.value = cleanedText;
+        
+        await worker.terminate();
+        
+      } catch (error) {
+        console.error('OCR Error:', error);
+        
+        let errorMsg = 'Terjadi kesalahan tak terduga';
+        
+        if (error.message.includes('net::ERR_FAILED')) {
+          errorMsg = 'Gagal memuat model OCR. Pastikan koneksi internet stabil.';
+        } else if (error.message.includes('language')) {
+          errorMsg = 'Bahasa OCR tidak tersedia. Silakan coba dengan bahasa Inggris.';
+        } else if (error.message.includes('timeout')) {
+          errorMsg = 'Proses OCR terlalu lama. Coba gambar yang lebih kecil atau crop area penting saja.';
+        }
+        
+        alert(`Gagal melakukan OCR: ${errorMsg}`);
+        ocrResult.value = `ERROR: ${error.message}\n\nTips:\n1. Pastikan gambar jelas\n2. Teks minimal 10px`;
+        
+        // SOLUSI 6: Fallback ke OCR cloud jika tersedia
+        if (imageUrl && confirm('Coba gunakan OCR cloud?')) {
+          try {
+            loader.textContent = 'Mencoba OCR Cloud...';
+            const cloudResult = await callCloudOCR(imageUrl);
+            ocrResult.value = cloudResult;
+          } catch (cloudError) {
+            console.error('Cloud OCR Error:', cloudError);
+            ocrResult.value += '\n\nGagal juga dengan OCR cloud: ' + cloudError.message;
+          }
+        }
+      } finally {
+        if (imageUrl) URL.revokeObjectURL(imageUrl);
+        
+        btn.disabled = false;
+        btn.textContent = '🔍 Mulai Scan OCR';
+        loader.style.display = 'none';
       }
     }
-    
-    alert(`Gagal melakukan OCR: ${errorMsg}`);
-    ocrResult.value = `ERROR: ${error.message}\n\nTips:\n1. Pastikan gambar jelas\n2. Teks minimal 10px`;
-    
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '🔍 Mulai Scan OCR';
-    setTimeout(() => {
-      loader.style.display = 'none';
-    }, 3000);
-  }
-}
 
-// Helper: Load file to Image
-function loadImage(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = e => {
-      const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = () => reject(new Error('Gagal memuat gambar'));
-      img.src = e.target.result;
-    };
-    reader.onerror = () => reject(new Error('Gagal membaca file'));
-    reader.readAsDataURL(file);
-  });
-}
+    // Fungsi fallback ke OCR cloud
+    async function callCloudOCR(imageUrl) {
+      const API_KEY = 'K83526596588957'; // API key OCR.Space
+      const API_URL = `https://api.ocr.space/parse/imageurl?apikey=${API_KEY}&url=${encodeURIComponent(imageUrl)}&language=ind&isOverlayRequired=false`;
+      
+      try {
+        const response = await fetch(API_URL);
+        const data = await response.json();
+        
+        if (data.IsErroredOnProcessing) {
+          throw new Error(data.ErrorMessage[0] || 'Cloud OCR error');
+        }
+        
+        return data.ParsedResults[0].ParsedText;
+      } catch (error) {
+        throw new Error('Cloud OCR gagal: ' + error.message);
+      }
+    }
     
     // ======================== //
     // OPTIMIZED PARSING FUNCTIONS //
