@@ -1,5 +1,3 @@
-// ocr-ai-handler.js
-
 function cekLogin() {
   const login = localStorage.getItem("admin_login");
   if (login !== "true") {
@@ -15,7 +13,6 @@ function getPath() {
 
 let uploadedImageDataUrl = "";
 
-// Inisialisasi
 document.addEventListener("DOMContentLoaded", () => {
   const uploadInput = document.getElementById("uploadSoalGambar");
   if (uploadInput) {
@@ -45,16 +42,28 @@ document.addEventListener("DOMContentLoaded", () => {
       jsonArea.value = "🧠 Memproses dengan AI...";
 
       try {
-        const res = await fetch("https://kumpulansoal-cvfcs4w3w-boys-projects-ee470813.vercel.app/api/parse", {
+        const res = await fetch("https://kumpulansoal.vercel.app/api/parse", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: raw })
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ text: raw }) // pastikan ini 'text'
         });
+
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error("Gagal fetch: " + errText);
+        }
+
         const parsed = await res.json();
 
-        const pretty = JSON.stringify(parsed, null, 2);
-        jsonArea.value = pretty;
-        renderSoalEditor(parsed);
+        // Coba parse ulang jika masih berupa string JSON
+        const soalList = Array.isArray(parsed)
+          ? parsed
+          : JSON.parse(parsed);
+
+        jsonArea.value = JSON.stringify(soalList, null, 2);
+        renderSoalEditor(soalList);
       } catch (e) {
         jsonArea.value = "❌ Error parsing AI: " + e.message;
       }
@@ -82,6 +91,7 @@ async function mulaiScanOCR() {
   ocrResult.value = text;
 }
 
+// 🧱 Tampilkan hasil ke editor UI
 function renderSoalEditor(soalList) {
   const container = document.getElementById("daftarSoal");
   container.innerHTML = "";
@@ -112,6 +122,7 @@ function renderSoalEditor(soalList) {
   });
 }
 
+// 💾 Simpan ke Firebase
 function simpanSemuaSoalKeFirebase() {
   const path = getPath();
   const soalEls = document.querySelectorAll(".soal-item");
