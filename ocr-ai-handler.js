@@ -1,10 +1,9 @@
-// ocr-ai-handler.js
-
-// Helper DOM\const $ = id => document.getElementById(id);
+// Helper DOM
+const $ = id => document.getElementById(id);
 
 let selectedFile = null;
 
-// Pilih gambar soal
+// ✅ Event: Pilih gambar soal
 $('uploadSoalGambar').addEventListener('change', e => {
   if (e.target.files.length === 0) {
     selectedFile = null;
@@ -19,12 +18,13 @@ $('uploadSoalGambar').addEventListener('change', e => {
   $('jsonResult').value = '';
 });
 
-// Mulai scan OCR pake Tesseract.js
+// ✅ Event: Mulai scan OCR pakai Tesseract.js
 $('btnMulaiScan').addEventListener('click', () => {
   if (!selectedFile) {
     alert('Pilih gambar soal terlebih dahulu!');
     return;
   }
+
   $('btnMulaiScan').disabled = true;
   $('btnMulaiScan').textContent = '🔄 Memindai...';
 
@@ -41,74 +41,76 @@ $('btnMulaiScan').addEventListener('click', () => {
     });
 });
 
-// Tombol parse OCR ke JSON lokal
+// ✅ Event: Parse hasil OCR ke JSON Soal (tanpa API eksternal)
 $('btnParseOCR').addEventListener('click', () => {
   const rawText = $('ocrResult').value.trim();
-  if (!rawText) return alert('Teks OCR kosong.');
+  if (!rawText) {
+    alert('Teks OCR kosong, lakukan scan dulu!');
+    return;
+  }
 
-  const json = parseSoalFromText(rawText);
+  $('btnParseOCR').disabled = true;
+  $('btnParseOCR').textContent = '⚙️ Memproses...';
 
-  // Transform array jadi object versi_1
-  const soalObject = { versi_1: {} };
-  json.forEach((item, index) => {
-    soalObject.versi_1[(index + 1).toString()] = item;
-  });
-
-  $('jsonResult').value = JSON.stringify(soalObject, null, 2);
-  window.soalArray = soalObject;
-});
-
-// =======================
-// Parser Lokal Pintar
-// =======================
-function parseSoalFromText(text) {
-  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  // Proses parsing lokal
   const soalArray = [];
+  const lines = rawText.split('\n').map(l => l.trim()).filter(l => l);
+
   let currentSoal = null;
+  let pilihan = { a: '', b: '', c: '', d: '' };
+  let index = 1;
 
-  lines.forEach(line => {
-    const soalMatch = line.match(/^(\d+)[\.\)]*[\s\-]*(.+)/);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Deteksi awal soal
+    const soalMatch = line.match(/^(\d+)[\.\)]\s*(.+)/);
     if (soalMatch) {
-      if (currentSoal) soalArray.push(currentSoal);
-      currentSoal = {
-        question: soalMatch[2].trim(),
-        a: '', b: '', c: '', d: '', correct: ''
-      };
-      return;
-    }
-
-    const pilihanMatch = line.match(/^([a-dA-D])[\.\)\-–]?\s*(.+)/);
-    if (pilihanMatch && currentSoal) {
-      const huruf = pilihanMatch[1].toLowerCase();
-      currentSoal[huruf] = pilihanMatch[2].replace(/[€•]/g, '').trim();
-      return;
-    }
-
-    if (line.toLowerCase().includes('jawaban') && currentSoal) {
-      const correctMatch = line.match(/jawaban[\s\:\-]*([a-dA-D])/i);
-      if (correctMatch) currentSoal.correct = correctMatch[1].toLowerCase();
-    }
-
-    if (currentSoal && line.includes('€')) {
-      line.split('€').forEach(sub => {
-        const subMatch = sub.match(/^([a-dA-D])[\.\)\-]?\s*(.+)/);
-        if (subMatch) {
-          const huruf = subMatch[1].toLowerCase();
-          currentSoal[huruf] = subMatch[2].trim();
-        }
-      });
-    }
-
-    if (currentSoal && currentSoal.d === '') {
-      const potongan = line.match(/(.+?)\s+(.+?)\s+(.+?)\s+(.+)/);
-      if (potongan) {
-        ['a', 'b', 'c', 'd'].forEach((h, i) => {
-          currentSoal[h] = potongan[i + 1]?.trim();
+      if (currentSoal) {
+        soalArray.push({
+          question: currentSoal,
+          a: pilihan.a,
+          b: pilihan.b,
+          c: pilihan.c,
+          d: pilihan.d,
+          correct: 'a' // Default sementara, bisa diedit manual
         });
       }
+      currentSoal = soalMatch[2].trim();
+      pilihan = { a: '', b: '', c: '', d: '' };
+      continue;
     }
+
+    // Deteksi pilihan jawaban
+    const pilihanMatch = line.match(/^([a-dA-D])[\.€\)]\s*(.+)/);
+    if (pilihanMatch) {
+      const key = pilihanMatch[1].toLowerCase();
+      pilihan[key] = pilihanMatch[2].trim();
+    }
+  }
+
+  // Tambahkan soal terakhir
+  if (currentSoal) {
+    soalArray.push({
+      question: currentSoal,
+      a: pilihan.a,
+      b: pilihan.b,
+      c: pilihan.c,
+      d: pilihan.d,
+      correct: 'a'
+    });
+  }
+
+  // Konversi ke format versi_1
+  const soalObject = { versi_1: {} };
+  soalArray.forEach((item, idx) => {
+    soalObject.versi_1[(idx + 1).toString()] = item;
   });
 
-  if (currentSoal) soalArray.push(currentSoal);
-  return soalArray;
-}
+  // Tampilkan JSON hasil di textarea
+  $('jsonResult').value = JSON.stringify(soalObject, null, 2);
+  window.soalArray = soalObject;
+
+  $('btnParseOCR').disabled = false;
+  $('btnParseOCR').textContent = '⚙️ Parse ke Format JSON Soal';
+});
